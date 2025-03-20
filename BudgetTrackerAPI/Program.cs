@@ -27,7 +27,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 
 // JWT Authentication Configuration
 var jwtKey = builder.Configuration["JwtSettings:Secret"];
-var key = Convert.FromBase64String(jwtKey); // ✅ Uses Base64 decoding
+var key = Convert.FromBase64String(jwtKey); 
 
 builder.Services.AddAuthentication(options =>
 {
@@ -78,9 +78,17 @@ builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer(); // Enables Swagger for minimal APIs
 builder.Services.AddSwaggerGen(); // Registers Swagger
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:3000")
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        });
+});
 
 var app = builder.Build();
 
@@ -91,14 +99,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "Budget Tracker API v1");
-        options.RoutePrefix = "swagger"; // Ensures Swagger UI is available at /swagger
+        options.RoutePrefix = "swagger"; 
     });
 
 }
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowAllOrigins");
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
