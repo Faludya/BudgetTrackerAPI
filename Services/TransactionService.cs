@@ -45,6 +45,7 @@ namespace Services
             if (userExists == null)
                 throw new KeyNotFoundException($"User with ID {transaction.UserId} not found.");
 
+            transaction.Date = transaction.Date.ToUniversalTime();
             transaction.CreatedAt = DateTime.UtcNow;
 
             await _repositoryWrapper.TransactionRepository.Create(transaction);
