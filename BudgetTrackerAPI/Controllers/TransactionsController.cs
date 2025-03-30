@@ -20,7 +20,12 @@ namespace BudgetTrackerAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var transactions = await _transactionService.GetAllTransactionsAsync();
+            if (!Request.Headers.TryGetValue("userId", out var userId))
+            {
+                return BadRequest("Missing userId in headers.");
+            }
+
+            var transactions = await _transactionService.GetAllTransactionsAsync(userId);
             return Ok(transactions);
         }
 
