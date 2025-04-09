@@ -8,6 +8,7 @@ namespace BudgetTrackerAPI.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [ValidateUserIdHeader]
     public class TransactionsController : ControllerBase
     {
         private readonly ITransactionService _transactionService;
@@ -20,9 +21,9 @@ namespace BudgetTrackerAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            if (!Request.Headers.TryGetValue("userId", out var userId))
+            if (!HttpContext.Items.TryGetValue("UserId", out var userIdObj) || userIdObj is not string userId)
             {
-                return BadRequest("Missing userId in headers.");
+                return BadRequest("UserId not found in context.");
             }
 
             var transactions = await _transactionService.GetAllTransactionsAsync(userId);

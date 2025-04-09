@@ -8,6 +8,7 @@ namespace BudgetTrackerAPI.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [ValidateUserIdHeader]
     public class CategoriesController : ControllerBase
     {
         private readonly ICategoryService _categoryService;
@@ -23,7 +24,12 @@ namespace BudgetTrackerAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var categories = await _categoryService.GetAllCategoriesAsync();
+            if (!HttpContext.Items.TryGetValue("UserId", out var userIdObj) || userIdObj is not string userId)
+            {
+                return BadRequest("UserId not found in context.");
+            }
+
+            var categories = await _categoryService.GetAllCategoriesAsync(userId);
             return Ok(categories);
         }
 
@@ -48,7 +54,7 @@ namespace BudgetTrackerAPI.Controllers
         /// Create a new category.
         /// </summary>
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] Category category)
+        public async Task<IActionResult> Create(Category category)
         {
             if (category == null)
                 return BadRequest(new { message = "Category cannot be null" });

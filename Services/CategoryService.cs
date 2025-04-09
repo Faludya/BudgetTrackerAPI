@@ -13,9 +13,9 @@ namespace Services
         _repositoryWrapper = repositoryWrapper;
     }
 
-    public async Task<IEnumerable<Category>> GetAllCategoriesAsync()
+    public async Task<IEnumerable<Category>> GetAllCategoriesAsync(string userId)
     {
-        return await _repositoryWrapper.CategoryRepository.FindAll();
+        return await _repositoryWrapper.CategoryRepository.FindByCondition(u => u.UserId == userId);
     }
 
     public async Task<Category> GetCategoryByIdAsync(int id)
