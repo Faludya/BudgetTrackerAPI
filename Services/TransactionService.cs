@@ -15,7 +15,7 @@ namespace Services
 
         public async Task<IEnumerable<Transaction>> GetAllTransactionsAsync(string userId)
         {
-            return await _repositoryWrapper.TransactionRepository.FindByCondition(u => u.UserId == userId);
+            return await _repositoryWrapper.TransactionRepository.GetTransactions(userId);
         }
 
         public async Task<Transaction> GetTransactionByIdAsync(int id)
