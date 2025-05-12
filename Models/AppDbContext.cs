@@ -8,6 +8,8 @@ namespace Models
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Currency> Currencies { get; set; }
+        public DbSet<UserPreferences> UserPreferences { get; set; }
+
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {

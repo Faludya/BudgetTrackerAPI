@@ -2,6 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Services.Interfaces;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 
 namespace BudgetTrackerAPI.Controllers
 {
@@ -53,6 +57,54 @@ namespace BudgetTrackerAPI.Controllers
                 token,
                 userId = user.Id
             });
+        }
+
+        [HttpGet("login-google")]
+        public IActionResult LoginWithGoogle([FromQuery] string returnUrl = "/")
+        {
+            var redirectUrl = Url.Action(nameof(ExternalLoginCallback), "Users", new { returnUrl });
+            var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
+            return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+        }
+
+        [HttpGet("signin-google")]
+        public async Task<IActionResult> ExternalLoginCallback(string returnUrl = "/")
+        {
+            var authenticateResult = await HttpContext.AuthenticateAsync("ExternalCookies");
+
+            if (!authenticateResult.Succeeded)
+                return Unauthorized("Google login failed.");
+
+            var email = authenticateResult.Principal.FindFirst(ClaimTypes.Email)?.Value;
+            var firstName = authenticateResult.Principal.FindFirst(ClaimTypes.GivenName)?.Value;
+            var lastName = authenticateResult.Principal.FindFirst(ClaimTypes.Surname)?.Value;
+            var googleId = authenticateResult.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(googleId))
+                return BadRequest("Missing Google account information.");
+
+            var user = await _userService.GetUserByEmailAsync(email);
+
+            if (user == null)
+            {
+                user = new ApplicationUser
+                {
+                    Email = email,
+                    UserName = email,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    GoogleId = googleId,
+                    CreatedDate = DateTime.UtcNow
+                };
+
+                var createResult = await _userService.RegisterUserAsync(user, null); // Register without password
+                if (!createResult.Succeeded)
+                    return BadRequest(createResult.Errors);
+            }
+
+            // Generate JWT and redirect to frontend
+            var token = _userService.GenerateJwtToken(user);
+            return Redirect($"{returnUrl}?token={token}&userId={user.Id}");
         }
 
     }

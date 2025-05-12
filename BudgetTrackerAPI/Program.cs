@@ -11,10 +11,6 @@ using Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-//builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-//    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
-
 // Add DbContext for PostgreSQL
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -26,7 +22,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 
 // JWT Authentication Configuration
 var jwtKey = builder.Configuration["JwtSettings:Secret"];
-var key = Convert.FromBase64String(jwtKey); 
+var key = Convert.FromBase64String(jwtKey);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -40,12 +36,18 @@ builder.Services.AddAuthentication(options =>
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(key), // ✅ Use the decoded key
+        IssuerSigningKey = new SymmetricSecurityKey(key), // Your JWT signing key
         ValidateIssuer = false,
         ValidateAudience = false
     };
+})
+.AddCookie("ExternalCookies") // Needed to temporarily store external login
+.AddGoogle(googleOptions =>
+{
+    googleOptions.SignInScheme = "ExternalCookies";
+    googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+    googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
 });
-
 
 builder.Services.Configure<RouteOptions>(options =>
 {
@@ -59,12 +61,14 @@ builder.Services.AddScoped<IApplicationUserRepository, ApplicationUserRepository
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<ICurrencyRepository, CurrencyRepository>();
+builder.Services.AddScoped<IUserPreferencesRepository, UserPreferencesRepository>();
 
 // Services
 builder.Services.AddScoped<IApplicationUserService, ApplicationUserService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<ICurrencyService, CurrencyService>();
+builder.Services.AddScoped<IUserPreferencesService, UserPreferencesService>();
 
 //App user
 builder.Services.AddScoped<UserManager<ApplicationUser>>();

@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography.Pkcs;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Models;
 using Repositories.Interfaces;
 
@@ -8,10 +9,11 @@ namespace Repositories
     public class ApplicationUserRepository : IApplicationUserRepository
     {
         private readonly UserManager<ApplicationUser> _userManager;
-
-        public ApplicationUserRepository(UserManager<ApplicationUser> userManager)
+        private readonly IUserPreferencesRepository _userPreferencesRepository;
+        public ApplicationUserRepository(UserManager<ApplicationUser> userManager, IUserPreferencesRepository userPreferencesRepository)
         {
             _userManager = userManager;
+            _userPreferencesRepository = userPreferencesRepository;
         }
 
         public async Task<IEnumerable<ApplicationUser>> GetAllUsersAsync()
@@ -29,10 +31,33 @@ namespace Repositories
             return await _userManager.FindByEmailAsync(email);
         }
 
-        public async Task<IdentityResult> CreateUserAsync(ApplicationUser user, string password)
+        public async Task<IdentityResult> CreateUserAsync(ApplicationUser user, string? password)
         {
-            return await _userManager.CreateAsync(user, password);
+            IdentityResult result;
+
+            if (string.IsNullOrEmpty(password))
+            {
+                result = await _userManager.CreateAsync(user);
+            }
+            else
+            {
+                result = await _userManager.CreateAsync(user, password);
+            }
+
+            if (result.Succeeded)
+            {
+                var defaultPrefs = new UserPreferences
+                {
+                    UserId = user.Id,
+                };
+
+                await _userPreferencesRepository.Create(defaultPrefs);
+            }
+
+            return result;
         }
+
+
 
         public async Task<IdentityResult> UpdateUserAsync(ApplicationUser user)
         {

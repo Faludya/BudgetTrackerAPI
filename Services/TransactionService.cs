@@ -7,7 +7,6 @@ namespace Services
     public class TransactionService : ITransactionService
     {
         private readonly IRepositoryWrapper _repositoryWrapper;
-
         public TransactionService(IRepositoryWrapper repositoryWrapper)
         {
             _repositoryWrapper = repositoryWrapper;
@@ -15,8 +14,29 @@ namespace Services
 
         public async Task<IEnumerable<Transaction>> GetAllTransactionsAsync(string userId)
         {
-            return await _repositoryWrapper.TransactionRepository.GetTransactions(userId);
+            var transactions = (await _repositoryWrapper.TransactionRepository.GetTransactions(userId)).ToList();
+            var preferences = await _repositoryWrapper.UserPreferencesRepository.GetUserPreferences(userId);
+            var preferredCurrency = await _repositoryWrapper.CurrencyRepository.GetCurrencyByCode(preferences.PreferredCurrency);
+
+            foreach (var t in transactions)
+            {
+                if (t.Currency?.Code == preferredCurrency.Code)
+                    continue;
+
+                var originalCurrency = t.Currency;
+                if (originalCurrency == null || originalCurrency.ExchangeRate == 0)
+                    continue;
+
+                var baseAmount = t.Amount / originalCurrency.ExchangeRate;
+                t.Amount = Math.Round(baseAmount * preferredCurrency.ExchangeRate, 2);
+
+                // For UI purposes, overwrite the Currency to the preferred one
+                //t.Currency = preferredCurrency;
+            }
+
+            return transactions;
         }
+
 
         public async Task<Transaction> GetTransactionByIdAsync(int id)
         {

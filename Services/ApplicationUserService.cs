@@ -56,9 +56,6 @@ namespace Services
             return tokenHandler.WriteToken(token);
         }
 
-
-
-
         public async Task<IEnumerable<ApplicationUser>> GetAllUsersAsync()
         {
             return await _userRepository.GetAllUsersAsync();
@@ -72,17 +69,16 @@ namespace Services
 
         public async Task<ApplicationUser> GetUserByEmailAsync(string email)
         {
-            return await _userRepository.GetUserByEmailAsync(email)
-                   ?? throw new KeyNotFoundException($"User with email {email} not found.");
+            var user = await _userRepository.GetUserByEmailAsync(email);
+
+            if (user == null)
+                return null;
+
+            return user;
         }
 
         public async Task<IdentityResult> RegisterUserAsync(ApplicationUser user, string password)
         {
-            if (string.IsNullOrEmpty(password))
-            {
-                throw new ArgumentException("Password cannot be empty.", nameof(password));
-            }
-
             return await _userRepository.CreateUserAsync(user, password);
         }
 
