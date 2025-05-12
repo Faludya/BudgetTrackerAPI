@@ -21,22 +21,24 @@ namespace Services
             foreach (var t in transactions)
             {
                 if (t.Currency?.Code == preferredCurrency.Code)
+                {
+                    t.ConvertedAmount = t.Amount;
                     continue;
+                }
 
                 var originalCurrency = t.Currency;
                 if (originalCurrency == null || originalCurrency.ExchangeRate == 0)
+                {
+                    t.ConvertedAmount = t.Amount; // fallback
                     continue;
+                }
 
                 var baseAmount = t.Amount / originalCurrency.ExchangeRate;
-                t.Amount = Math.Round(baseAmount * preferredCurrency.ExchangeRate, 2);
-
-                // For UI purposes, overwrite the Currency to the preferred one
-                //t.Currency = preferredCurrency;
+                t.ConvertedAmount = Math.Round(baseAmount * preferredCurrency.ExchangeRate, 2);
             }
 
             return transactions;
         }
-
 
         public async Task<Transaction> GetTransactionByIdAsync(int id)
         {

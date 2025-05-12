@@ -17,7 +17,7 @@ namespace Repositories
 
         public async Task<List<Transaction>> GetTransactions(string userId)
         {
-            return await _appDbContext.Transactions.Include(t => t.Category).Where(t => t.UserId == userId).ToListAsync();
+            return await _appDbContext.Transactions.Include(t => t.Category).Include(t => t.Currency).Where(t => t.UserId == userId).ToListAsync();
         }
     }
 }

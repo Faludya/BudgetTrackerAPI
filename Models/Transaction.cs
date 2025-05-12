@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Models
 {
@@ -24,6 +25,8 @@ namespace Models
 
         public int CategoryId { get; set; }
         public int CurrencyId { get; set; }
+        [NotMapped]
+        public decimal ConvertedAmount { get; set; }
 
         //These navigation properties should be optional to prevent validation errors
         public virtual ApplicationUser? User { get; set; }

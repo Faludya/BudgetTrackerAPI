@@ -12,7 +12,7 @@ namespace Models
         public string UserId { get; set; }  
 
         [ForeignKey("UserId")]
-        public ApplicationUser User { get; set; }   
+        public ApplicationUser? User { get; set; }   
 
         [MaxLength(3)]
         public string PreferredCurrency { get; set; } = "EUR";
