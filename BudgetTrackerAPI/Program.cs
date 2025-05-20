@@ -69,6 +69,8 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<ICurrencyService, CurrencyService>();
 builder.Services.AddScoped<IUserPreferencesService, UserPreferencesService>();
+builder.Services.AddScoped<IStatisticsService, StatisticsService>();
+
 
 //App user
 builder.Services.AddScoped<UserManager<ApplicationUser>>();

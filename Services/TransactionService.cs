@@ -1,6 +1,8 @@
 ﻿using Models;
+using Models.DTOs;
 using Repositories.Interfaces;
 using Services.Interfaces;
+using static NuGet.Packaging.PackagingConstants;
 
 namespace Services
 {
@@ -125,6 +127,42 @@ namespace Services
             await _repositoryWrapper.TransactionRepository.Delete(transaction);
             await _repositoryWrapper.Save();
         }
+
+        public async Task<IEnumerable<Transaction>> GetAllFilteredTransactions(string userId, TransactionFilterDto dto)
+        {
+            var transactions = (await _repositoryWrapper.TransactionRepository.GetFilteredTransactions(userId, dto)).ToList();
+            var preferences = await _repositoryWrapper.UserPreferencesRepository.GetUserPreferences(userId);
+            if (preferences == null)
+                throw new InvalidOperationException("User preferences not found.");
+
+            var preferredCurrency = await _repositoryWrapper.CurrencyRepository.GetCurrencyByCode(preferences.PreferredCurrency);
+
+            foreach (var t in transactions)
+            {
+                if (t.Currency?.Code == preferredCurrency.Code)
+                {
+                    t.ConvertedAmount = t.Amount;
+                }
+                else if (t.Currency == null || t.Currency.ExchangeRate == 0)
+                {
+                    t.ConvertedAmount = t.Amount;
+                }
+                else
+                {
+                    var baseAmount = t.Amount / t.Currency.ExchangeRate;
+                    t.ConvertedAmount = Math.Round(baseAmount * preferredCurrency.ExchangeRate, 2);
+                }
+            }
+
+            if (dto.AmountMin.HasValue)
+                transactions = transactions.Where(t => t.ConvertedAmount >= dto.AmountMin.Value).ToList();
+
+            if (dto.AmountMax.HasValue)
+                transactions = transactions.Where(t => t.ConvertedAmount <= dto.AmountMax.Value).ToList();
+
+            return transactions;
+        }
+
     }
 
 }

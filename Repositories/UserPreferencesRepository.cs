@@ -17,7 +17,7 @@ namespace Repositories
 
         public async Task<UserPreferences> GetUserPreferences(string userId)
         {
-            return await _appDbContext.UserPreferences.Where(t => t.UserId == userId).FirstAsync(); ;
+            return await _appDbContext.UserPreferences.Where(t => t.UserId == userId).FirstOrDefaultAsync(); ;
         }
     }
 }

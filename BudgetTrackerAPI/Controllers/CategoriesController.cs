@@ -56,8 +56,15 @@ namespace BudgetTrackerAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(Category category)
         {
+            if (!HttpContext.Items.TryGetValue("UserId", out var userIdObj) || userIdObj is not string userId)
+            {
+                return BadRequest("UserId not found in context.");
+            }
+
             if (category == null)
                 return BadRequest(new { message = "Category cannot be null" });
+
+            category.UserId = userId;
 
             await _categoryService.AddCategoryAsync(category);
             return CreatedAtAction(nameof(GetById), new { id = category.Id }, category);

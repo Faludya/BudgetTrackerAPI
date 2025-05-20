@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models;
+using Models.DTOs;
 using Services.Interfaces;
 
 namespace BudgetTrackerAPI.Controllers
@@ -28,6 +29,18 @@ namespace BudgetTrackerAPI.Controllers
 
             var transactions = await _transactionService.GetAllTransactionsAsync(userId);
             return Ok(transactions);
+        }
+
+        [HttpGet("filtered")]
+        public async Task<IActionResult> GetFiltered([FromQuery] TransactionFilterDto filters)
+        {
+            if (!HttpContext.Items.TryGetValue("UserId", out var userIdObj) || userIdObj is not string userId)
+            {
+                return BadRequest("UserId not found in context.");
+            }
+
+            var result = await _transactionService.GetAllFilteredTransactions(userId, filters);
+            return Ok(result);
         }
 
         [HttpGet("{id}")]
