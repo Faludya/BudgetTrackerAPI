@@ -26,7 +26,7 @@ namespace Models
         public int CategoryId { get; set; }
         public int CurrencyId { get; set; }
         [NotMapped]
-        public decimal ConvertedAmount { get; set; }
+        public decimal? ConvertedAmount { get; set; }
 
         //These navigation properties should be optional to prevent validation errors
         public virtual ApplicationUser? User { get; set; }

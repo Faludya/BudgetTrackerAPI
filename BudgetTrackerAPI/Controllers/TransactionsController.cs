@@ -96,6 +96,41 @@ namespace BudgetTrackerAPI.Controllers
                 return NotFound(ex.Message);
             }
         }
+
+        [HttpGet("export")]
+        public async Task<IActionResult> Export([FromQuery] TransactionFilterDto filters, [FromQuery] string format)
+        {
+            try
+            {
+                if (!HttpContext.Items.TryGetValue("UserId", out var userIdObj) || userIdObj is not string userId)
+                {
+                    return BadRequest("UserId not found in context.");
+                }
+
+                filters.FromDate = filters.FromDate?.ToUniversalTime();
+                filters.ToDate = filters.ToDate?.ToUniversalTime();
+
+                var result = await _transactionService.ExportAsync(userId, filters, format.ToLower());
+
+                if (result == null)
+                    return BadRequest("Unsupported export format.");
+
+                var contentType = format.ToLower() == "excel"
+                    ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    : "application/pdf";
+
+                var fileName = $"transactions_{DateTime.Now:yyyyMMdd_HHmm}.{(format == "excel" ? "xlsx" : "pdf")}";
+
+                return File(result.Content, contentType, fileName);
+            }
+            catch (Exception ex)
+            {
+                // 👇 This will show up in Output or terminal logs
+                Console.WriteLine($"Export error: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return StatusCode(500, $"Export failed: {ex.Message}");
+            }
+        }
     }
 
 }

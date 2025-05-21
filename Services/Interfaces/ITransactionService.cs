@@ -11,5 +11,7 @@ namespace Services.Interfaces
         Task AddTransactionAsync(Transaction transaction);
         Task UpdateTransactionAsync(Transaction transaction);
         Task DeleteTransactionAsync(int id);
+        Task<ExportFileResult?> ExportAsync(string userId, TransactionFilterDto filters, string format);
+
     }
 }

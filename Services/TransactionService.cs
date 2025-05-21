@@ -163,6 +163,18 @@ namespace Services
             return transactions;
         }
 
+        public async Task<ExportFileResult?> ExportAsync(string userId, TransactionFilterDto filters, string format)
+        {
+            var transactions = await GetAllFilteredTransactions(userId, filters);
+
+            return format switch
+            {
+                "excel" => ExportService.ExportToExcel(transactions),
+                "pdf" => ExportService.ExportToPdf(transactions),
+                _ => null
+            };
+        }
+
     }
 
 }
