@@ -14,12 +14,18 @@ namespace Repositories
         private readonly Lazy<ITransactionRepository> _transactionRepository;
         private readonly Lazy<ICurrencyRepository> _currencyRepository;
         private readonly Lazy<IUserPreferencesRepository> _userPreferencesRepository;
+        private readonly Lazy<IImportSessionRepository> _importSessionRepository;
+        private readonly Lazy<IImportedTransactionRepository> _importedTransactionRepository;
+        private readonly Lazy<ICategorySuggestionRepository> _categorySuggestionRepository;
 
         public IApplicationUserRepository ApplicationUserRepository => _applicationUserRepository.Value;
         public ICategoryRepository CategoryRepository => _categoryRepository.Value;
         public ITransactionRepository TransactionRepository => _transactionRepository.Value;
         public ICurrencyRepository CurrencyRepository => _currencyRepository.Value;
         public IUserPreferencesRepository UserPreferencesRepository => _userPreferencesRepository.Value;
+        public IImportSessionRepository ImportSessionRepository=> _importSessionRepository.Value;
+        public IImportedTransactionRepository ImportedTransactionRepository => _importedTransactionRepository.Value;
+        public ICategorySuggestionRepository CategorySuggestionRepository => _categorySuggestionRepository.Value;
 
         public RepositoryWrapper(AppDbContext appDbContext, UserManager<ApplicationUser> userManager)
         {
@@ -31,6 +37,9 @@ namespace Repositories
             _transactionRepository = new(() => new TransactionRepository(_appDbContext));
             _currencyRepository = new(() => new CurrencyRepository(_appDbContext));
             _applicationUserRepository = new(() => new ApplicationUserRepository(_userManager, UserPreferencesRepository));
+            _importedTransactionRepository = new(() => new ImportedTransactionRepository(_appDbContext));
+            _importSessionRepository = new(() => new ImportSessionRepository(_appDbContext));
+            _categorySuggestionRepository = new(() => new CategorySuggestionRepository(_appDbContext));
         }
 
         public async Task Save()

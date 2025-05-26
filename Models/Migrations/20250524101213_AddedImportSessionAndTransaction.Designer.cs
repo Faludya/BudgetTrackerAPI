@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Models;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Models.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250524101213_AddedImportSessionAndTransaction")]
+    partial class AddedImportSessionAndTransaction
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -278,41 +281,6 @@ namespace Models.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("Models.CategorySuggestion", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("Confidence")
-                        .HasColumnType("numeric");
-
-                    b.Property<int?>("ImportedTransactionId")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsFromMLModel")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("SourceKeyword")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("SuggestedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CategoryId");
-
-                    b.HasIndex("ImportedTransactionId");
-
-                    b.ToTable("CategorySuggestions");
-                });
-
             modelBuilder.Entity("Models.Currency", b =>
                 {
                     b.Property<int>("Id")
@@ -555,23 +523,6 @@ namespace Models.Migrations
                     b.Navigation("ParentCategory");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Models.CategorySuggestion", b =>
-                {
-                    b.HasOne("Models.Category", "Category")
-                        .WithMany()
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Models.ImportedTransaction", "ImportedTransaction")
-                        .WithMany()
-                        .HasForeignKey("ImportedTransactionId");
-
-                    b.Navigation("Category");
-
-                    b.Navigation("ImportedTransaction");
                 });
 
             modelBuilder.Entity("Models.ImportedTransaction", b =>

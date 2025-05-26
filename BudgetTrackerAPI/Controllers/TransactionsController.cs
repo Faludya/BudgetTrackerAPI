@@ -125,7 +125,6 @@ namespace BudgetTrackerAPI.Controllers
             }
             catch (Exception ex)
             {
-                // 👇 This will show up in Output or terminal logs
                 Console.WriteLine($"Export error: {ex.Message}");
                 Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return StatusCode(500, $"Export failed: {ex.Message}");

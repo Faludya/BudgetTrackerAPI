@@ -9,6 +9,9 @@ namespace Models
         public DbSet<Category> Categories { get; set; }
         public DbSet<Currency> Currencies { get; set; }
         public DbSet<UserPreferences> UserPreferences { get; set; }
+        public DbSet<ImportSession> ImportSessions { get; set; }
+        public DbSet<ImportedTransaction> ImportedTransactions { get; set; }
+        public DbSet<CategorySuggestion> CategorySuggestions{ get; set; }
 
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
