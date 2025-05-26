@@ -1,4 +1,5 @@
-﻿using Models;
+﻿using DocumentFormat.OpenXml.Office2010.Excel;
+using Models;
 using Repositories.Interfaces;
 using Services.Interfaces;
 
@@ -40,6 +41,12 @@ namespace Services
         {
             return await _repositoryWrapper.ImportSessionRepository.GetImportSessionById(id)
                 ?? throw new KeyNotFoundException($"Import session with ID {id} not found.");
+        }
+
+        public async Task<ImportSession> GetImportSessionByUserIdAsync(string userId)
+        {
+            return await _repositoryWrapper.ImportSessionRepository.GetImportSessionsByUserId(userId) 
+                ?? throw new KeyNotFoundException($"Import session with ID {userId} not found.");
         }
 
         public async Task UpdateImportSessionAsync(ImportSession importSession)

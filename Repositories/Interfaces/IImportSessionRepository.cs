@@ -10,6 +10,6 @@ namespace Repositories.Interfaces
     public interface IImportSessionRepository : IRepositoryBase<ImportSession>
     {
         Task<ImportSession?> GetImportSessionById(Guid id);
-        Task<List<ImportSession>> GetAllSessionsForUserAsync(string userId);
+        Task<ImportSession?> GetImportSessionsByUserId(string userId);
     }
 }

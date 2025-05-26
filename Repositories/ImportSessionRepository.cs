@@ -20,10 +20,9 @@ namespace Repositories
             return await _appDbContext.ImportSessions.Include(s => s.Transactions).FirstOrDefaultAsync(s => s.Id == id);
         }
 
-        public async Task<List<ImportSession>> GetAllSessionsForUserAsync(string userId)
+        public async Task<ImportSession?> GetImportSessionsByUserId(string userId)
         {
-            return await _appDbContext.ImportSessions.Include(s => s.Transactions).Where(s => s.UserId == userId).ToListAsync();
+            return await _appDbContext.ImportSessions.Include(s => s.Transactions).FirstOrDefaultAsync(s => s.UserId == userId);
         }
-
     }
 }

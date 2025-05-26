@@ -134,9 +134,9 @@ namespace Services
             return true;
         }
 
-        public async Task<List<ImportSession>> GetAllSessionsForUserAsync(string userId)
+        public async Task<ImportSession> GetImportSessionsByUserIdAsync(string userId)
         {
-            return await _repositoryWrapper.ImportSessionRepository.GetAllSessionsForUserAsync(userId);
+            return await _repositoryWrapper.ImportSessionRepository.GetImportSessionsByUserId(userId);
         }
 
         private async Task<(int CategoryId, string Keyword)?> FindCategorySuggestionFromKeyword(string description, string userId)

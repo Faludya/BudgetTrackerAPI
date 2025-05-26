@@ -15,7 +15,7 @@ namespace Services.Interfaces
         Task<string> CompleteImportAsync(Guid id, string userId);
         Task<ImportSession> CreateImportSessionAsync(IFormFile file, string template, string userId);
         Task<bool> UpdateImportedTransactionAsync(Guid sessionId, int transactionId, UpdateImportedTransactionDto dto);
-        Task<List<ImportSession>> GetAllSessionsForUserAsync(string userId);
+        Task<ImportSession> GetImportSessionsByUserIdAsync(string userId);
 
     }
 }
