@@ -18,7 +18,7 @@ namespace Repositories
 
         public async Task<Category> GetCategoryByUserIdAndName(string userId, string cateogryName)
         {
-            return await _appDbContext.Categories.Where(c => c.UserId == userId && c.Name.ToLower() == cateogryName.ToLower()).FirstAsync();
+            return await _appDbContext.Categories.Where(c => c.UserId == userId && c.Name.ToLower() == cateogryName.ToLower()).SingleOrDefaultAsync();
         }
     }
 }

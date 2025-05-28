@@ -12,7 +12,7 @@
 
         public decimal Confidence { get; set; } // range 0.0 - 1.0
         public bool IsFromMLModel { get; set; } = false;
-        public string? SourceKeyword { get; set; } // optional, e.g. "kaufland"
+        public string? SourceKeyword { get; set; } 
 
         public DateTime SuggestedAt { get; set; } = DateTime.UtcNow;
     }

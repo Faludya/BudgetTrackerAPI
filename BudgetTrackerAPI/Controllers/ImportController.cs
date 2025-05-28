@@ -59,6 +59,20 @@ namespace BudgetTrackerAPI.Controllers
             return session == null ? NotFound() : Ok(session);
         }
 
+        [HttpPut("session/{sessionId}")]
+        public async Task<IActionResult> UpdateImportSession(Guid sessionId, [FromBody] List<UpdateImportedTransactionDto> transactions)
+        {
+            try
+            {
+                await _importService.UpdateImportSessionAsync(sessionId, transactions);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
 
         [HttpPut("session/{sessionId}/transaction/{transactionId}")]
         public async Task<IActionResult> UpdateImportedTransaction(Guid sessionId, int transactionId, [FromBody] UpdateImportedTransactionDto dto)
