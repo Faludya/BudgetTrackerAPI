@@ -50,7 +50,7 @@ namespace Services
                     Type = tx.Amount < 0 ? "Debit" : "Credit"
                 });
 
-                // 👇 Save Category Suggestion if not already existing
+                // save Category Suggestion if not already existing
                 var existingSuggestion = await _repositoryWrapper.CategorySuggestionRepository.GetCategorySuggestionById(tx.Id);
 
                 if (existingSuggestion == null)
@@ -147,7 +147,7 @@ namespace Services
 
                     if (matchedCategory != null)
                     {
-                        // Extract a keyword from the description for future matching
+                        // extract a keyword from the description for future matching
                         var keyword = parsedTx.Description?
                             .ToLower()
                             .Split(new[] { ' ', '|', '-', ',', '.', ':' }, StringSplitOptions.RemoveEmptyEntries)

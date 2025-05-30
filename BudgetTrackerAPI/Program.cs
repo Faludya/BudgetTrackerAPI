@@ -65,6 +65,10 @@ builder.Services.AddScoped<IUserPreferencesRepository, UserPreferencesRepository
 builder.Services.AddScoped<IImportSessionRepository, ImportSessionRepository>();
 builder.Services.AddScoped<IImportedTransactionRepository, ImportedTransactionRepository>();
 builder.Services.AddScoped<ICategorySuggestionRepository, CategorySuggestionRepository>();
+builder.Services.AddScoped<IBudgetTemplateRepository, BudgetTemplateRepository>();
+builder.Services.AddScoped<IBudgetTemplateItemRepository, BudgetTemplateItemRepository>();
+builder.Services.AddScoped<IUserBudgetRepository, UserBudgetRepository>();
+builder.Services.AddScoped<IUserBudgetItemRepository, UserBudgetItemRepository>();
 
 // Services
 builder.Services.AddScoped<IApplicationUserService, ApplicationUserService>();
@@ -77,6 +81,8 @@ builder.Services.AddScoped<IImportService, ImportService>();
 builder.Services.AddScoped<IImportParserService, ImportParserService>();
 builder.Services.AddScoped<IImportedTransactionService, ImportedTransactionService>();
 builder.Services.AddScoped<IImportSessionService, ImportSessionService>();
+builder.Services.AddScoped<IBudgetTemplateService, BudgetTemplateService>();
+builder.Services.AddScoped<IUserBudgetService, UserBudgetService>();
 
 
 //App user

@@ -17,6 +17,10 @@ namespace Repositories
         private readonly Lazy<IImportSessionRepository> _importSessionRepository;
         private readonly Lazy<IImportedTransactionRepository> _importedTransactionRepository;
         private readonly Lazy<ICategorySuggestionRepository> _categorySuggestionRepository;
+        private readonly Lazy<IBudgetTemplateRepository> _budgetTemplateRepository;
+        private readonly Lazy<IBudgetTemplateItemRepository> _budgetTemplateItemRepository;
+        private readonly Lazy<IUserBudgetRepository> _userBudgetRepository;
+        private readonly Lazy<IUserBudgetItemRepository> _userBudgetItemRepository;
 
         public IApplicationUserRepository ApplicationUserRepository => _applicationUserRepository.Value;
         public ICategoryRepository CategoryRepository => _categoryRepository.Value;
@@ -26,6 +30,10 @@ namespace Repositories
         public IImportSessionRepository ImportSessionRepository=> _importSessionRepository.Value;
         public IImportedTransactionRepository ImportedTransactionRepository => _importedTransactionRepository.Value;
         public ICategorySuggestionRepository CategorySuggestionRepository => _categorySuggestionRepository.Value;
+        public IBudgetTemplateRepository BudgetTemplateRepository => _budgetTemplateRepository.Value;
+        public IBudgetTemplateItemRepository BudgetTemplateItemRepository => _budgetTemplateItemRepository.Value;
+        public IUserBudgetRepository UserBudgetRepository => _userBudgetRepository.Value;
+        public IUserBudgetItemRepository UserBudgetItemRepository => _userBudgetItemRepository.Value;
 
         public RepositoryWrapper(AppDbContext appDbContext, UserManager<ApplicationUser> userManager)
         {
@@ -40,6 +48,10 @@ namespace Repositories
             _importedTransactionRepository = new(() => new ImportedTransactionRepository(_appDbContext));
             _importSessionRepository = new(() => new ImportSessionRepository(_appDbContext));
             _categorySuggestionRepository = new(() => new CategorySuggestionRepository(_appDbContext));
+            _budgetTemplateRepository = new(() => new BudgetTemplateRepository(_appDbContext));
+            _budgetTemplateItemRepository = new(() => new BudgetTemplateItemRepository(_appDbContext));
+            _userBudgetRepository = new(() => new UserBudgetRepository(_appDbContext)); 
+            _userBudgetItemRepository = new(() => new UserBudgetItemRepository(_appDbContext));
         }
 
         public async Task Save()
