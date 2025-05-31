@@ -13,6 +13,7 @@ namespace Models
 
         public bool IsPredefined { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string? CategoryType { get; set; } // "Essentials", "Wants", etc.
 
         //Foreign Keys
         public int? ParentCategoryId { get; set; }

@@ -6,6 +6,8 @@ namespace Services.Interfaces
     {
         Task<IEnumerable<BudgetTemplate>> GetAllTemplatesAsync();
         Task<BudgetTemplate?> GetTemplateByIdAsync(int id);
+        Task<BudgetTemplate?> GetTemplateWithItemsAsync(int templateId);
+
         Task AddTemplateAsync(BudgetTemplate template);
         Task UpdateTemplateAsync(BudgetTemplate template);
         Task DeleteTemplateAsync(int id);

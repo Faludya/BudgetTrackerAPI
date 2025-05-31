@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Models;
+using Models.DTOs;
 using Services.Interfaces;
 
 namespace BudgetTrackerAPI.Controllers
@@ -20,6 +21,25 @@ namespace BudgetTrackerAPI.Controllers
         {
             var budget = await _userBudgetService.GetBudgetForMonthAsync(userId, month, year);
             return budget == null ? NotFound() : Ok(budget);
+        }
+
+        [HttpPost("generate")]
+        public async Task<IActionResult> GenerateBudgetFromTemplate([FromBody] GenerateBudgetRequest request)
+        {
+            var budget = await _userBudgetService.CreateBudgetFromTemplateAsync(
+                request.UserId, request.Month, request.Year, request.TemplateId, request.Income
+            );
+            return Ok(budget);
+        }
+
+        [HttpPost("category-limit")]
+        public async Task<IActionResult> AddOrUpdateCategoryLimit([FromBody] CategoryLimitDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var updated = await _userBudgetService.AddOrUpdateCategoryLimitAsync(dto);
+            return updated != null ? Ok(updated) : BadRequest("Could not save category limit.");
         }
 
         [HttpPost]

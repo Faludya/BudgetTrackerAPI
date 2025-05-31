@@ -14,6 +14,7 @@ namespace Models
         public UserBudget UserBudget { get; set; } = default!;
 
         public int? CategoryId { get; set; } // Can be null if it's a category type like "Needs"
+        public Category? Category { get; set; } 
         public string? CategoryType { get; set; } // optional fallback (for Needs/Wants/Savings breakdown)
 
         public decimal Limit { get; set; }

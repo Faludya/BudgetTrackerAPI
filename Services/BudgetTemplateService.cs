@@ -15,7 +15,7 @@ namespace Services
 
         public async Task<IEnumerable<BudgetTemplate>> GetAllTemplatesAsync()
         {
-            return await _repositoryWrapper.BudgetTemplateRepository.FindAll();
+            return await _repositoryWrapper.BudgetTemplateRepository.GetAllBudgetTemplatesAsync();
         }
 
         public async Task<BudgetTemplate> GetTemplateByIdAsync(int id)
@@ -43,6 +43,11 @@ namespace Services
                 _repositoryWrapper.BudgetTemplateRepository.Delete(template);
                 await _repositoryWrapper.Save();
             }
+        }
+
+        public async Task<BudgetTemplate?> GetTemplateWithItemsAsync(int templateId)
+        {
+            return await _repositoryWrapper.BudgetTemplateRepository.GetTemplateWithItemsAsync(templateId);
         }
     }
 
