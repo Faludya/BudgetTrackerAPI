@@ -11,6 +11,11 @@ namespace Repositories
         {
         }
 
+        public async Task<List<Category>> GetAllCategoriesByUserId(string userId)
+        {
+            return await _appDbContext.Categories.Where(c => c.UserId == userId).OrderBy(c => c.OrderIndex).ToListAsync();
+        }
+
         public async Task<Category> GetCategoryById(int id)
         {
             return await _appDbContext.Categories.FindAsync(id);

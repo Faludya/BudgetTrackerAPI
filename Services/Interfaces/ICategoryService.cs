@@ -1,4 +1,5 @@
 ﻿using Models;
+using Models.DTOs;
 
 namespace Services.Interfaces
 {
@@ -6,6 +7,7 @@ namespace Services.Interfaces
     {
         Task<IEnumerable<Category>> GetAllCategoriesAsync(string userId);
         Task<Category> GetCategoryByIdAsync(int id);
+        Task ReorderCategoriesAsync(List<CategoryReorderDto> reorderedCategories);
         Task AddCategoryAsync(Category category);
         Task UpdateCategoryAsync(Category category);
         Task DeleteCategoryAsync(int id);

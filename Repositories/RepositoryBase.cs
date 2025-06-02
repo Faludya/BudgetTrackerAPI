@@ -26,7 +26,7 @@ namespace Repositories
 
         public async Task<IQueryable<T>> FindByCondition(Expression<Func<T, bool>> expression)
         {
-            return await Task.Run(() => _appDbContext.Set<T>().Where(expression).AsNoTracking());
+            return await Task.Run(() => _appDbContext.Set<T>().Where(expression));
         }
 
         public async Task Create(T entity)

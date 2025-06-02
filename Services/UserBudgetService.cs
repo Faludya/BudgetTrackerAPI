@@ -3,6 +3,7 @@ using Repositories.Interfaces;
 using Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Models.DTOs;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace Services
 {
@@ -54,9 +55,8 @@ namespace Services
         {
             var monthDate = new DateTime(categoryDto.Year, categoryDto.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
-            // Get or create UserBudget for this month
-            var budgets = await _repositoryWrapper.UserBudgetRepository.FindByCondition(
-                b => b.UserId == categoryDto.UserId && b.Month == monthDate);
+            var budgets = await _repositoryWrapper.UserBudgetRepository
+                .FindByCondition(b => b.UserId == categoryDto.UserId && b.Month == monthDate);
 
             var budget = await budgets.Include(b => b.BudgetItems).FirstOrDefaultAsync();
 
@@ -72,27 +72,29 @@ namespace Services
                 _repositoryWrapper.UserBudgetRepository.Create(budget);
                 await _repositoryWrapper.Save();
 
-                // Reload to get correct ID + relations
-                var query = await _repositoryWrapper.UserBudgetRepository
+                // Reload
+                var bQuery = await _repositoryWrapper.UserBudgetRepository
                     .FindByCondition(b => b.UserId == categoryDto.UserId && b.Month == monthDate);
-                budget = await query
+                budget = await bQuery
                     .Include(b => b.BudgetItems)
                     .FirstOrDefaultAsync();
             }
 
-            // Update or Add
-            var existingItem = budget.BudgetItems.FirstOrDefault(bi => bi.CategoryId == categoryDto.CategoryId);
+            // Only update category-specific entries (ignore group-only entries with CategoryId == null)
+            var existingItem = budget.BudgetItems.FirstOrDefault(
+                bi => bi.CategoryId.HasValue && bi.CategoryId == categoryDto.CategoryId
+            );
 
             if (existingItem != null)
             {
                 existingItem.Limit = categoryDto.Limit;
                 existingItem.CategoryType = categoryDto.ParentCategoryType;
                 existingItem.IsAIRecommended = false;
+
+                await _repositoryWrapper.UserBudgetItemRepository.Update(existingItem);
             }
             else
             {
-                var category = await _repositoryWrapper.CategoryRepository.GetCategoryById(categoryDto.CategoryId);
-
                 var newItem = new UserBudgetItem
                 {
                     UserBudgetId = budget.Id,
@@ -102,13 +104,13 @@ namespace Services
                     IsAIRecommended = false,
                 };
 
-                _repositoryWrapper.UserBudgetItemRepository.Create(newItem);
+                await _repositoryWrapper.UserBudgetItemRepository.Create(newItem);
             }
 
             await _repositoryWrapper.Save();
 
-            // ✅ Re-fetch after save to make sure new items are included
-            var budgetQuery = await _repositoryWrapper.UserBudgetRepository.FindByCondition(b => b.Id == budget.Id);
+            var budgetQuery = await _repositoryWrapper.UserBudgetRepository
+                .FindByCondition(b => b.Id == budget.Id);
             budget = await budgetQuery
                 .Include(b => b.BudgetItems)
                     .ThenInclude(i => i.Category)
@@ -116,6 +118,7 @@ namespace Services
 
             return budget?.BudgetItems.FirstOrDefault(b => b.CategoryId == categoryDto.CategoryId);
         }
+
 
         public async Task AddBudgetAsync(UserBudget budget)
         {

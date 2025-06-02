@@ -83,6 +83,7 @@ builder.Services.AddScoped<IImportedTransactionService, ImportedTransactionServi
 builder.Services.AddScoped<IImportSessionService, ImportSessionService>();
 builder.Services.AddScoped<IBudgetTemplateService, BudgetTemplateService>();
 builder.Services.AddScoped<IUserBudgetService, UserBudgetService>();
+builder.Services.AddScoped<IUserBudgetItemService, UserBudgetItemService>();
 
 
 //App user

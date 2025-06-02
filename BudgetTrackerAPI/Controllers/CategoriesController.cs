@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models;
+using Models.DTOs;
 using Services.Interfaces;
 
 namespace BudgetTrackerAPI.Controllers
@@ -48,6 +49,13 @@ namespace BudgetTrackerAPI.Controllers
             {
                 return NotFound(new { message = ex.Message });
             }
+        }
+
+        [HttpPut("reorder")]
+        public async Task<IActionResult> ReorderCategories([FromBody] List<CategoryReorderDto> reorderedCategories)
+        {
+            await _categoryService.ReorderCategoriesAsync(reorderedCategories);
+            return NoContent();
         }
 
         /// <summary>

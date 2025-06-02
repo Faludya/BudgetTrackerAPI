@@ -14,6 +14,9 @@ namespace Models
         public bool IsPredefined { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? CategoryType { get; set; } // "Essentials", "Wants", etc.
+        public string? ColorHex { get; set; }
+        public string? IconName { get; set; } 
+        public int OrderIndex { get; set; }
 
         //Foreign Keys
         public int? ParentCategoryId { get; set; }

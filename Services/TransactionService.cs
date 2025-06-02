@@ -154,6 +154,14 @@ namespace Services
                 }
             }
 
+            if (!string.IsNullOrWhiteSpace(dto.Description))
+            {
+                transactions = transactions
+                    .Where(t => !string.IsNullOrWhiteSpace(t.Description) &&
+                                t.Description.Contains(dto.Description, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
             if (dto.AmountMin.HasValue)
                 transactions = transactions.Where(t => t.ConvertedAmount >= dto.AmountMin.Value).ToList();
 

@@ -10,10 +10,12 @@ namespace BudgetTrackerAPI.Controllers
     public class UserBudgetController : ControllerBase
     {
         private readonly IUserBudgetService _userBudgetService;
+        private readonly IUserBudgetItemService _userBudgetItemService;
 
-        public UserBudgetController(IUserBudgetService userBudgetService)
+        public UserBudgetController(IUserBudgetService userBudgetService, IUserBudgetItemService userBudgetItemService)
         {
             _userBudgetService = userBudgetService;
+            _userBudgetItemService = userBudgetItemService;
         }
 
         [HttpGet("{userId}/{month}/{year}")]
@@ -40,6 +42,13 @@ namespace BudgetTrackerAPI.Controllers
 
             var updated = await _userBudgetService.AddOrUpdateCategoryLimitAsync(dto);
             return updated != null ? Ok(updated) : BadRequest("Could not save category limit.");
+        }
+
+        [HttpDelete("category-limit/{id}")]
+        public async Task<IActionResult> DeleteCategoryLimit(int id)
+        {
+            await _userBudgetItemService.DeleteItemAsync(id);
+            return NoContent();
         }
 
         [HttpPost]
