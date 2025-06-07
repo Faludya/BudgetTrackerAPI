@@ -43,64 +43,104 @@ namespace Services
         {
             QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
-            var pdfBytes = QuestPDF.Fluent.Document.Create(container =>
+            var pdfBytes = Document.Create(container =>
             {
                 container.Page(page =>
                 {
                     page.Margin(30);
                     page.Size(PageSizes.A4);
                     page.PageColor(Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(12));
+                    page.DefaultTextStyle(x => x.FontSize(11));
 
-                    page.Header()
-                        .Text("Transaction Report")
-                        .SemiBold().FontSize(18).FontColor(Colors.Blue.Medium);
+                    // HEADER TITLE
+                    page.Header().Row(row =>
+                    {
+                        row.RelativeColumn()
+                           .Text("Budget Tracker – Transaction Report")
+                           .SemiBold().FontSize(18).FontColor(Colors.Blue.Medium);
+                    });
 
-                    page.Content()
-                        .Table(table =>
+                    // MAIN TABLE
+                    page.Content().PaddingTop(15).Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
                         {
-                            // Define columns
-                            table.ColumnsDefinition(columns =>
-                            {
-                                columns.ConstantColumn(80);  // Date
-                                columns.RelativeColumn();    // Category
-                                columns.ConstantColumn(60);  // Type
-                                columns.ConstantColumn(80);  // Amount
-                                columns.ConstantColumn(50);  // Currency
-                                columns.RelativeColumn();    // Description
-                            });
-
-                            // Table Header
-                            table.Header(header =>
-                            {
-                                header.Cell().Element(CellStyle).Text("Date");
-                                header.Cell().Element(CellStyle).Text("Category");
-                                header.Cell().Element(CellStyle).Text("Type");
-                                header.Cell().Element(CellStyle).Text("Amount");
-                                header.Cell().Element(CellStyle).Text("Curr.");
-                                header.Cell().Element(CellStyle).Text("Description");
-
-                                static IContainer CellStyle(IContainer container)
-                                {
-                                    return container.DefaultTextStyle(x => x.SemiBold()).Padding(5).Background(Colors.Grey.Lighten2);
-                                }
-                            });
-
-                            // Table Rows
-                            foreach (var tx in transactions)
-                            {
-                                table.Cell().Element(Cell => Cell.Padding(5)).Text(tx.Date.ToString("yyyy-MM-dd"));
-                                table.Cell().Element(Cell => Cell.Padding(5)).Text(tx.Category.Name);
-                                table.Cell().Element(Cell => Cell.Padding(5)).Text(tx.Type);
-                                table.Cell().Element(Cell => Cell.Padding(5)).Text((tx.ConvertedAmount ?? tx.Amount).ToString("F2"));
-                                table.Cell().Element(Cell => Cell.Padding(5)).Text(tx.Currency?.Name ?? "-");
-                                table.Cell().Element(Cell => Cell.Padding(5)).Text(tx.Description ?? "");
-                            }
+                            columns.ConstantColumn(80);  // Date
+                            columns.RelativeColumn();    // Category
+                            columns.ConstantColumn(60);  // Type
+                            columns.ConstantColumn(80);  // Amount
+                            columns.ConstantColumn(50);  // Currency
+                            columns.RelativeColumn();    // Description
                         });
 
-                    page.Footer()
-                        .AlignCenter()
-                        .Text($"Generated on {DateTime.Now:yyyy-MM-dd HH:mm}");
+                        // HEADER ROW
+                        table.Header(header =>
+                        {
+                            static IContainer Style(IContainer container) => container
+                                .DefaultTextStyle(x => x.SemiBold().FontColor(Colors.Blue.Darken4))
+                                .Background(Colors.Blue.Lighten4)
+                                .PaddingVertical(5).PaddingHorizontal(8);
+
+                            header.Cell().Element(Style).Text("Date");
+                            header.Cell().Element(Style).Text("Category");
+                            header.Cell().Element(Style).Text("Type");
+                            header.Cell().Element(Style).Text("Amount");
+                            header.Cell().Element(Style).Text("Curr.");
+                            header.Cell().Element(Style).Text("Description");
+                        });
+
+                        // TABLE ROWS
+                        bool isEven = true;
+                        foreach (var tx in transactions)
+                        {
+                            var bg = isEven ? Colors.Grey.Lighten4 : Colors.White;
+                            isEven = !isEven;
+
+                            table.Cell().Background(bg).Padding(5).Text(tx.Date.ToString("yyyy-MM-dd"));
+
+                            table.Cell().Background(bg).Padding(5).Row(row =>
+                            {
+                                row.RelativeColumn().Text(tx.Category.Name);
+                            });
+
+                            table.Cell().Background(bg).Padding(5)
+                                .Text(tx.Type)
+                                .FontColor(tx.Type?.ToLower() == "debit" ? Colors.Red.Lighten2 : Colors.Green.Lighten2);
+
+                            table.Cell().Background(bg).Padding(5)
+                                .Text((tx.ConvertedAmount ?? tx.Amount).ToString("F2"));
+
+                            table.Cell().Background(bg).Padding(5).Text(tx.Currency?.Name ?? "-");
+
+                            table.Cell().Background(bg).Padding(5).Text(tx.Description ?? "");
+                        }
+
+                        // TOTAL ROW
+                        var total = transactions.Sum(t => t.ConvertedAmount ?? t.Amount);
+
+                        table.Cell().ColumnSpan(3).AlignRight().PaddingTop(10).Text("Total:").SemiBold();
+                        table.Cell().ColumnSpan(3).PaddingTop(10).Text($"{total:F2}").SemiBold();
+                    });
+
+                    // FOOTER
+                    page.Footer().Row(row =>
+                    {
+                        row.RelativeColumn()
+                           .AlignLeft()
+                           .Text($"Generated on {DateTime.Now:yyyy-MM-dd HH:mm}")
+                           .FontSize(10)
+                           .FontColor(Colors.Grey.Darken2);
+
+                        row.ConstantColumn(100)
+                           .AlignRight()
+                           .Text(text =>
+                           {
+                               text.Span("Page ");
+                               text.CurrentPageNumber();
+                               text.Span(" of ");
+                               text.TotalPages();
+                           });
+                    });
                 });
             }).GeneratePdf();
 
@@ -109,6 +149,9 @@ namespace Services
                 Content = pdfBytes
             };
         }
+
+
+
 
     }
 }

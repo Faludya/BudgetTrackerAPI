@@ -3,7 +3,6 @@ using Repositories.Interfaces;
 using Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Models.DTOs;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace Services
 {
@@ -29,14 +28,18 @@ namespace Services
 
             if (existing != null)
             {
-                _repositoryWrapper.UserBudgetRepository.Delete(existing);
+                await _repositoryWrapper.UserBudgetRepository.Delete(existing);
                 await _repositoryWrapper.Save();
             }
+
+            var preferences = await _repositoryWrapper.UserPreferencesRepository.GetUserPreferences(userId);
+            var preferredCurrency = preferences?.PreferredCurrency ?? "EUR";
 
             var budget = new UserBudget
             {
                 UserId = userId,
                 Month = monthDate,
+                CurrencyCode = preferredCurrency,
                 BudgetItems = template.Items.Select(i => new UserBudgetItem
                 {
                     CategoryType = i.CategoryType,
@@ -45,7 +48,7 @@ namespace Services
                 }).ToList()
             };
 
-            _repositoryWrapper.UserBudgetRepository.Create(budget);
+            await _repositoryWrapper.UserBudgetRepository.Create(budget);
             await _repositoryWrapper.Save();
 
             return budget;
@@ -69,7 +72,7 @@ namespace Services
                     BudgetItems = new List<UserBudgetItem>()
                 };
 
-                _repositoryWrapper.UserBudgetRepository.Create(budget);
+                await _repositoryWrapper.UserBudgetRepository.Create(budget);
                 await _repositoryWrapper.Save();
 
                 // Reload
@@ -128,7 +131,7 @@ namespace Services
 
         public async Task UpdateBudgetAsync(UserBudget budget)
         {
-            _repositoryWrapper.UserBudgetRepository.Update(budget);
+            await _repositoryWrapper.UserBudgetRepository.Update(budget);
             await _repositoryWrapper.Save();
         }
 
@@ -137,7 +140,7 @@ namespace Services
             var budget = await _repositoryWrapper.UserBudgetRepository.GetUserBudgetById(id);
             if (budget != null)
             {
-                _repositoryWrapper.UserBudgetRepository.Delete(budget);
+                await _repositoryWrapper.UserBudgetRepository.Delete(budget);
                 await _repositoryWrapper.Save();
             }
         }
@@ -152,16 +155,20 @@ namespace Services
                     .ThenInclude(bi => bi.Category)
                 .FirstOrDefaultAsync();
 
-            if (budget == null)
-                return null;
+            if (budget == null) return null;
 
-            // Optional: project a DTO
+            var preferences = await _repositoryWrapper.UserPreferencesRepository.GetUserPreferences(userId);
+            var preferredCurrency = await _repositoryWrapper.CurrencyRepository.GetCurrencyByCode(preferences.PreferredCurrency);
+            var budgetCurrency = await _repositoryWrapper.CurrencyRepository.GetCurrencyByCode(budget.CurrencyCode);
+
             foreach (var item in budget.BudgetItems)
             {
                 if (string.IsNullOrEmpty(item.CategoryType) && item.CategoryId.HasValue && item.Category != null)
                 {
                     item.CategoryType = item.Category.CategoryType ?? "Uncategorized";
                 }
+
+                item.ConvertedLimit = CurrencyHelper.ConvertAmount(item.Limit, budgetCurrency, preferredCurrency);
             }
 
             return budget;

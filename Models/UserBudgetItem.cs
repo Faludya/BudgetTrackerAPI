@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,6 +24,8 @@ namespace Models
         public decimal? PredictedSpending { get; set; }
         public string? TrendDirection { get; set; } // e.g., "increasing", "stable"
         public bool IsAIRecommended { get; set; } = false;
+        [NotMapped]
+        public decimal ConvertedLimit { get; set; }
     }
 
 }

@@ -11,7 +11,8 @@ namespace Models
         public int Id { get; set; }
 
         public string UserId { get; set; } = default!;
-        public DateTime Month { get; set; }  // We'll store budgets per month
+        public DateTime Month { get; set; }
+        public string CurrencyCode { get; set; } = "EUR";
 
         public ICollection<UserBudgetItem> BudgetItems { get; set; } = new List<UserBudgetItem>();
     }
