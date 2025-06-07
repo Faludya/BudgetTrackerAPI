@@ -20,6 +20,39 @@ namespace BudgetTrackerAPI.Controllers
             _userService = userService;
         }
 
+        [ValidateUserIdHeader]
+        [HttpGet("user-profile")]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            if (!HttpContext.Items.TryGetValue("UserId", out var userIdObj) || userIdObj is not string userId)
+                return BadRequest("UserId not found in context.");
+
+            var user = await _userService.GetUserByIdAsync(userId);
+            return user != null ? Ok(user) : NotFound();
+        }
+
+        [ValidateUserIdHeader]
+        [HttpPut("user-profile")]
+        public async Task<IActionResult> UpdateCurrentUser([FromBody] ApplicationUser updatedUser)
+        {
+            if (!HttpContext.Items.TryGetValue("UserId", out var userIdObj) || userIdObj is not string userId)
+                return BadRequest("UserId not found in context.");
+
+            if (userId != updatedUser.Id)
+                return BadRequest("User ID mismatch.");
+
+            try
+            {
+                await _userService.UpdateUserAsync(updatedUser); 
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterUserDto model)
         {
