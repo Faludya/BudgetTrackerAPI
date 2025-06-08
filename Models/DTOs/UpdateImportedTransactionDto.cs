@@ -8,5 +8,7 @@
         public decimal Amount { get; set; }
         public string Currency { get; set; } = default!;
         public string? Category { get; set; }
+        public bool RememberMapping { get; set; }
+        public bool IsFromMLModel { get; set; }
     }
 }

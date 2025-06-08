@@ -73,7 +73,7 @@ builder.Services.AddScoped<IBudgetTemplateItemRepository, BudgetTemplateItemRepo
 builder.Services.AddScoped<IUserBudgetRepository, UserBudgetRepository>();
 builder.Services.AddScoped<IUserBudgetItemRepository, UserBudgetItemRepository>();
 builder.Services.AddScoped<IDashboardLayoutRepository, DashboardLayoutRepository>();
-
+builder.Services.AddScoped<ICategoryKeywordMappingRepository, CategoryKeywordMappingRepository>();
 
 // Services
 builder.Services.AddScoped<IApplicationUserService, ApplicationUserService>();
@@ -90,6 +90,7 @@ builder.Services.AddScoped<IBudgetTemplateService, BudgetTemplateService>();
 builder.Services.AddScoped<IUserBudgetService, UserBudgetService>();
 builder.Services.AddScoped<IUserBudgetItemService, UserBudgetItemService>();
 builder.Services.AddScoped<IDashboardLayoutService, DashboardLayoutService>();
+builder.Services.AddScoped<ICategoryKeywordMappingService, CategoryKeywordMappingService>();
 
 
 //App user

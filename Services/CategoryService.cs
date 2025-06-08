@@ -3,6 +3,7 @@ using Models;
 using Models.DTOs;
 using Repositories.Interfaces;
 using Services.Interfaces;
+using System.Diagnostics;
 
 namespace Services
 {
@@ -85,6 +86,33 @@ namespace Services
             }
 
             await _repositoryWrapper.Save();
+        }
+
+        public async Task<string?> PredictCategoryAsync(string description)
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "python",
+                Arguments = $"predict_category.py \"{description}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            if (process == null) return null;
+
+            var output = await process.StandardOutput.ReadToEndAsync();
+            var error = await process.StandardError.ReadToEndAsync();
+            process.WaitForExit();
+
+            if (!string.IsNullOrWhiteSpace(error))
+                throw new Exception($"Prediction script error: {error}");
+
+            var predictedLine = output.Split('\n').LastOrDefault(l => l.Contains("Predicted Category:"));
+            var category = predictedLine?.Split(':').LastOrDefault()?.Trim();
+            return category;
         }
 
     }

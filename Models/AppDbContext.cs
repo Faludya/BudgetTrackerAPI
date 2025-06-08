@@ -75,6 +75,12 @@ namespace Models
                 .HasForeignKey(i => i.UserBudgetId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<CategorySuggestion>()
+                .HasOne(cs => cs.ImportedTransaction)
+                .WithMany()
+                .HasForeignKey(cs => cs.ImportedTransactionId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<DashboardLayout>()
                 .HasIndex(x => x.UserId)
                 .IsUnique();

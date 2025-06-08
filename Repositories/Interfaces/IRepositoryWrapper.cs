@@ -15,6 +15,8 @@
         IUserBudgetRepository UserBudgetRepository { get; }
         IUserBudgetItemRepository UserBudgetItemRepository { get; }
         IDashboardLayoutRepository DashboardLayoutRepository { get; }
+        ICategoryKeywordMappingRepository CategoryKeywordMappingRepository { get; }
+
         Task Save();
     }
 }

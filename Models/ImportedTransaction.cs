@@ -17,6 +17,8 @@ namespace Models
         public decimal Amount { get; set; }
         public string Currency { get; set; }
         public string? Category { get; set; }
+        public bool RememberMapping { get; set; } = false;
+        public bool IsFromMLModel { get; set; } = false;
     }
 
 }

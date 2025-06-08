@@ -11,12 +11,17 @@ namespace Services
         private readonly IRepositoryWrapper _repositoryWrapper;
         private readonly IImportParserService _parserService;
         private readonly ICategorySuggestionRepository _categorySuggestionRepository;
+        private readonly ICategoryKeywordMappingService _mappingService;
+        private readonly ICategoryService _categoryService;
 
-        public ImportService(IRepositoryWrapper repositoryWrapper, IImportParserService parserService, ICategorySuggestionRepository categorySuggestionRepository)
+        public ImportService(IRepositoryWrapper repositoryWrapper, IImportParserService parserService, 
+            ICategorySuggestionRepository categorySuggestionRepository, ICategoryKeywordMappingService mappingService, ICategoryService categoryService)
         {
             _repositoryWrapper = repositoryWrapper;
             _parserService = parserService;
             _categorySuggestionRepository = categorySuggestionRepository;
+            _mappingService = mappingService;
+            _categoryService = categoryService;
         }
 
         public async Task<ImportSession?> GetImportSessionAsync(Guid id)
@@ -38,6 +43,7 @@ namespace Services
                 if (category == null || currency == null)
                     continue;
 
+                // ✅ Create the real Transaction
                 await _repositoryWrapper.TransactionRepository.Create(new Transaction
                 {
                     UserId = userId,
@@ -50,7 +56,7 @@ namespace Services
                     Type = tx.Amount < 0 ? "Debit" : "Credit"
                 });
 
-                // save Category Suggestion if not already existing
+                // ✅ Category Suggestion logic
                 var existingSuggestion = await _repositoryWrapper.CategorySuggestionRepository.GetCategorySuggestionById(tx.Id);
 
                 if (existingSuggestion == null)
@@ -67,13 +73,37 @@ namespace Services
                 }
                 else if (existingSuggestion.CategoryId != category.Id)
                 {
-                    // update the suggestion if user changed it
                     existingSuggestion.CategoryId = category.Id;
                     existingSuggestion.Confidence = 1.0m;
                     existingSuggestion.IsFromMLModel = false;
                     existingSuggestion.SourceKeyword = null;
 
                     await _repositoryWrapper.CategorySuggestionRepository.Update(existingSuggestion);
+                }
+
+                // ✅ New: Save keyword mapping if user opted to remember it
+                if (tx.RememberMapping && !string.IsNullOrWhiteSpace(tx.Description))
+                {
+                    var keyword = ExtractMainKeyword(tx.Description);
+                    if (!string.IsNullOrWhiteSpace(keyword))
+                    {
+                        var exists = await _repositoryWrapper.CategoryKeywordMappingRepository
+                            .FindByCondition(m =>
+                                m.UserId == userId &&
+                                m.Keyword.ToLower() == keyword.ToLower())
+                            .ContinueWith(t => t.Result.Any());
+
+                        if (!exists)
+                        {
+                            var newMapping = new CategoryKeywordMapping
+                            {
+                                UserId = userId,
+                                Keyword = keyword,
+                                CategoryId = category.Id
+                            };
+                            await _repositoryWrapper.CategoryKeywordMappingRepository.Create(newMapping);
+                        }
+                    }
                 }
             }
 
@@ -103,16 +133,28 @@ namespace Services
 
             foreach (var parsedTx in parsedTransactions)
             {
-                string? suggestedCategory = null;
-                var keywordCategory = await FindCategorySuggestionFromKeyword(parsedTx.Description, userId);
+                var matchedCategoryId = await _mappingService.FindCategoryIdByKeywordAsync(userId, parsedTx.Description);
+                string? matchedCategoryName = null;
 
-                if (keywordCategory != null)
+                if (matchedCategoryId.HasValue)
                 {
-                    suggestedCategory = (await _repositoryWrapper.CategoryRepository
-                        .GetCategoryById(keywordCategory.Value.CategoryId))?.Name;
+                    var matchedCategory = await _repositoryWrapper.CategoryRepository.GetCategoryById(matchedCategoryId.Value);
+                    matchedCategoryName = matchedCategory?.Name;
                 }
 
-                var finalCategory = suggestedCategory ?? parsedTx.Category;
+                // 🧠 Use matched name OR parsed category OR fallback prediction
+                string? finalCategory = matchedCategoryName ?? parsedTx.Category;
+
+                // Track whether ML model is used
+                bool isFromMLModel = false;
+
+                // 🔍 ML Fallback only if still null/empty
+                if (string.IsNullOrWhiteSpace(finalCategory))
+                {
+                    finalCategory = await _categoryService.PredictCategoryAsync(parsedTx.Description);
+                    if (!string.IsNullOrWhiteSpace(finalCategory))
+                        isFromMLModel = true;
+                }
 
                 var importedTx = new ImportedTransaction
                 {
@@ -121,48 +163,36 @@ namespace Services
                     Description = parsedTx.Description,
                     Amount = parsedTx.Amount,
                     Currency = parsedTx.Currency,
-                    Category = finalCategory
+                    Category = finalCategory,
+                    IsFromMLModel = isFromMLModel // ✅ Set based on fallback source
                 };
 
                 await _repositoryWrapper.ImportedTransactionRepository.Create(importedTx);
                 await _repositoryWrapper.Save();
 
-                if (keywordCategory != null)
+                // 💾 Save suggestion if category was found
+                if (!string.IsNullOrEmpty(finalCategory))
                 {
-                    var suggestion = new CategorySuggestion
-                    {
-                        ImportedTransactionId = importedTx.Id,
-                        CategoryId = keywordCategory.Value.CategoryId,
-                        Confidence = 0.85m,
-                        IsFromMLModel = false,
-                        SourceKeyword = keywordCategory.Value.Keyword
-                    };
-
-                    await _repositoryWrapper.CategorySuggestionRepository.Create(suggestion);
-                }
-                else if (!string.IsNullOrEmpty(finalCategory))
-                {
-                    var matchedCategory = await _repositoryWrapper.CategoryRepository
+                    var categoryEntity = await _repositoryWrapper.CategoryRepository
                         .GetCategoryByUserIdAndName(userId, finalCategory);
 
-                    if (matchedCategory != null)
+                    if (categoryEntity != null)
                     {
-                        // extract a keyword from the description for future matching
                         var keyword = parsedTx.Description?
                             .ToLower()
                             .Split(new[] { ' ', '|', '-', ',', '.', ':' }, StringSplitOptions.RemoveEmptyEntries)
                             .FirstOrDefault(w => w.Length > 3);
 
-                        var fallbackSuggestion = new CategorySuggestion
+                        var suggestion = new CategorySuggestion
                         {
                             ImportedTransactionId = importedTx.Id,
-                            CategoryId = matchedCategory.Id,
-                            Confidence = 1.0m,
-                            IsFromMLModel = false,
-                            SourceKeyword = keyword
+                            CategoryId = categoryEntity.Id,
+                            Confidence = isFromMLModel ? 0.7m : 1.0m,
+                            IsFromMLModel = isFromMLModel,
+                            SourceKeyword = isFromMLModel ? keyword : null
                         };
 
-                        await _repositoryWrapper.CategorySuggestionRepository.Create(fallbackSuggestion);
+                        await _repositoryWrapper.CategorySuggestionRepository.Create(suggestion);
                     }
                 }
             }
@@ -182,6 +212,7 @@ namespace Services
             tx.Amount = dto.Amount;
             tx.Currency = dto.Currency;
             tx.Category = dto.Category;
+            tx.RememberMapping = dto.RememberMapping;
 
             await _repositoryWrapper.ImportedTransactionRepository.Update(tx);
             await _repositoryWrapper.Save();
@@ -206,6 +237,7 @@ namespace Services
                     tx.Amount = dto.Amount;
                     tx.Currency = dto.Currency;
                     tx.Category = dto.Category;
+                    tx.RememberMapping = dto.RememberMapping;
 
                     await _repositoryWrapper.ImportedTransactionRepository.Update(tx);
                 }
@@ -214,24 +246,12 @@ namespace Services
             await _repositoryWrapper.Save();
         }
 
-        public async Task<(int CategoryId, string Keyword)?> FindCategorySuggestionFromKeyword(string description, string userId)
+        private string ExtractMainKeyword(string description)
         {
-            if (string.IsNullOrWhiteSpace(description))
-                return null;
+            if (string.IsNullOrWhiteSpace(description)) return string.Empty;
 
-            var words = description.ToLower().Split(new[] { ' ', '|', '-', ',' }, StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var word in words)
-            {
-                var suggestion = await _repositoryWrapper.CategorySuggestionRepository.FindSuggestionByKeywordAsync(userId, word);
-
-                if (suggestion != null)
-                    return (suggestion.CategoryId, word);
-            }
-
-            return null;
+            var words = description.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return words.FirstOrDefault(w => w.Length > 3)?.Trim().ToLower() ?? string.Empty;
         }
-
-
     }
 }
