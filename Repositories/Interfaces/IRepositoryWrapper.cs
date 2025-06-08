@@ -14,6 +14,7 @@
         IBudgetTemplateItemRepository BudgetTemplateItemRepository { get; }
         IUserBudgetRepository UserBudgetRepository { get; }
         IUserBudgetItemRepository UserBudgetItemRepository { get; }
+        IDashboardLayoutRepository DashboardLayoutRepository { get; }
         Task Save();
     }
 }

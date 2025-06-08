@@ -16,6 +16,9 @@ namespace Models
         public DbSet<BudgetTemplateItem> BudgetTemplateItems { get; set; }
         public DbSet<UserBudget> UserBudgets { get; set; }
         public DbSet<UserBudgetItem> UserBudgetItems { get; set; }
+        public DbSet<DashboardLayout> DashboardLayouts { get; set; }
+        public DbSet<CategoryKeywordMapping> CategoryKeywordMappings { get; set; }
+
 
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
@@ -71,6 +74,10 @@ namespace Models
                 .WithOne(i => i.UserBudget)
                 .HasForeignKey(i => i.UserBudgetId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<DashboardLayout>()
+                .HasIndex(x => x.UserId)
+                .IsUnique();
         }
 
     }

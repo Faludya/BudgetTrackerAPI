@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -8,8 +9,11 @@ using Repositories;
 using Repositories.Interfaces;
 using Services;
 using Services.Interfaces;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
+
+NpgsqlConnection.GlobalTypeMapper.UseJsonNet();
 
 // Add DbContext for PostgreSQL
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -54,7 +58,6 @@ builder.Services.Configure<RouteOptions>(options =>
     options.LowercaseUrls = true;
 });
 
-
 // Repositories
 builder.Services.AddScoped<IRepositoryWrapper, RepositoryWrapper>();
 builder.Services.AddScoped<IApplicationUserRepository, ApplicationUserRepository>();
@@ -69,6 +72,8 @@ builder.Services.AddScoped<IBudgetTemplateRepository, BudgetTemplateRepository>(
 builder.Services.AddScoped<IBudgetTemplateItemRepository, BudgetTemplateItemRepository>();
 builder.Services.AddScoped<IUserBudgetRepository, UserBudgetRepository>();
 builder.Services.AddScoped<IUserBudgetItemRepository, UserBudgetItemRepository>();
+builder.Services.AddScoped<IDashboardLayoutRepository, DashboardLayoutRepository>();
+
 
 // Services
 builder.Services.AddScoped<IApplicationUserService, ApplicationUserService>();
@@ -84,6 +89,7 @@ builder.Services.AddScoped<IImportSessionService, ImportSessionService>();
 builder.Services.AddScoped<IBudgetTemplateService, BudgetTemplateService>();
 builder.Services.AddScoped<IUserBudgetService, UserBudgetService>();
 builder.Services.AddScoped<IUserBudgetItemService, UserBudgetItemService>();
+builder.Services.AddScoped<IDashboardLayoutService, DashboardLayoutService>();
 
 
 //App user

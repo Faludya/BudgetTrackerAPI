@@ -21,6 +21,7 @@ namespace Repositories
         private readonly Lazy<IBudgetTemplateItemRepository> _budgetTemplateItemRepository;
         private readonly Lazy<IUserBudgetRepository> _userBudgetRepository;
         private readonly Lazy<IUserBudgetItemRepository> _userBudgetItemRepository;
+        private readonly Lazy<IDashboardLayoutRepository> _dashboardLayoutRepository;
 
         public IApplicationUserRepository ApplicationUserRepository => _applicationUserRepository.Value;
         public ICategoryRepository CategoryRepository => _categoryRepository.Value;
@@ -34,6 +35,7 @@ namespace Repositories
         public IBudgetTemplateItemRepository BudgetTemplateItemRepository => _budgetTemplateItemRepository.Value;
         public IUserBudgetRepository UserBudgetRepository => _userBudgetRepository.Value;
         public IUserBudgetItemRepository UserBudgetItemRepository => _userBudgetItemRepository.Value;
+        public IDashboardLayoutRepository DashboardLayoutRepository=> _dashboardLayoutRepository.Value;
 
         public RepositoryWrapper(AppDbContext appDbContext, UserManager<ApplicationUser> userManager)
         {
@@ -52,6 +54,7 @@ namespace Repositories
             _budgetTemplateItemRepository = new(() => new BudgetTemplateItemRepository(_appDbContext));
             _userBudgetRepository = new(() => new UserBudgetRepository(_appDbContext)); 
             _userBudgetItemRepository = new(() => new UserBudgetItemRepository(_appDbContext));
+            _dashboardLayoutRepository = new(() => new DashboardLayoutRepository(_appDbContext));
         }
 
         public async Task Save()
