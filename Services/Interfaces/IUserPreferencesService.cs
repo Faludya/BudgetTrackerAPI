@@ -8,5 +8,6 @@ namespace Services.Interfaces
         Task AddUserPreferencesAsync(UserPreferences userPreferences);
         Task UpdateUserPreferencesAsync(UserPreferences userPreferences);
         Task DeleteUserPreferencesAsync(string userId);
+        Task CreateDefaultUserPreferences(string userId);
     }
 }

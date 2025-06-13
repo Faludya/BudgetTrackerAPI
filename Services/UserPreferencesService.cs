@@ -23,6 +23,20 @@ namespace Services
             await _repositoryWrapper.Save();
         }
 
+        public async Task CreateDefaultUserPreferences(string userId)
+        {
+            var preferences = new UserPreferences
+            {
+                UserId = userId,
+                PreferredCurrency = "EUR",
+                Theme = "light",
+                DateFormat = "DD/MM/YYYY"
+            };
+
+            await _repositoryWrapper.UserPreferencesRepository.Create(preferences);
+            await _repositoryWrapper.Save();
+        }
+
         public async Task DeleteUserPreferencesAsync(string userId)
         {
             var preference = await _repositoryWrapper.UserPreferencesRepository.GetUserPreferences(userId);

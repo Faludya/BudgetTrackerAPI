@@ -91,6 +91,7 @@ builder.Services.AddScoped<IUserBudgetService, UserBudgetService>();
 builder.Services.AddScoped<IUserBudgetItemService, UserBudgetItemService>();
 builder.Services.AddScoped<IDashboardLayoutService, DashboardLayoutService>();
 builder.Services.AddScoped<ICategoryKeywordMappingService, CategoryKeywordMappingService>();
+builder.Services.AddHttpClient<ICurrencyApiService, FrankfurterApiService>();
 
 
 //App user

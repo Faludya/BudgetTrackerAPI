@@ -18,8 +18,7 @@ namespace Models
         public DbSet<UserBudgetItem> UserBudgetItems { get; set; }
         public DbSet<DashboardLayout> DashboardLayouts { get; set; }
         public DbSet<CategoryKeywordMapping> CategoryKeywordMappings { get; set; }
-
-
+        public DbSet<CurrencyExchangeRate> CurrencyExchangeRates { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -84,6 +83,18 @@ namespace Models
             modelBuilder.Entity<DashboardLayout>()
                 .HasIndex(x => x.UserId)
                 .IsUnique();
+
+            modelBuilder.Entity<CurrencyExchangeRate>()
+                .HasOne(c => c.BaseCurrency)
+                .WithMany()
+                .HasForeignKey(c => c.BaseCurrencyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<CurrencyExchangeRate>()
+                .HasOne(c => c.TargetCurrency)
+                .WithMany()
+                .HasForeignKey(c => c.TargetCurrencyId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
 
     }

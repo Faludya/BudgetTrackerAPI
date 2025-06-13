@@ -11,6 +11,8 @@ namespace Services.Interfaces
         Task<List<CategoryBudgetUsageDto>> GetBudgetUsageByCategoryAsync(string userId, int month, int year);
         Task<List<string>> GetOverspentCategoryNamesAsync(string userId, int month, int year);
         Task<BudgetHealthSummaryDto> GetBudgetHealthSummaryAsync(string userId, int month, int year);
+        Task<List<CurrencyHistoryDto>> GetCurrencyHistoryAsync(string userId, int days);
+
 
     }
 }

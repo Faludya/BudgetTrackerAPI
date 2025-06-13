@@ -9,9 +9,11 @@ namespace Services
     public class TransactionService : ITransactionService
     {
         private readonly IRepositoryWrapper _repositoryWrapper;
-        public TransactionService(IRepositoryWrapper repositoryWrapper)
+        private readonly ICurrencyService _currencyService;
+        public TransactionService(IRepositoryWrapper repositoryWrapper, ICurrencyService currencyService)
         {
             _repositoryWrapper = repositoryWrapper;
+            _currencyService = currencyService;
         }
 
         public async Task<IEnumerable<Transaction>> GetAllTransactionsAsync(string userId)
@@ -28,19 +30,35 @@ namespace Services
                     continue;
                 }
 
-                var originalCurrency = t.Currency;
-                if (originalCurrency == null || originalCurrency.ExchangeRate == 0)
+                if (t.Currency == null)
                 {
                     t.ConvertedAmount = t.Amount; // fallback
                     continue;
                 }
 
-                var baseAmount = t.Amount / originalCurrency.ExchangeRate;
-                t.ConvertedAmount = Math.Round(baseAmount * preferredCurrency.ExchangeRate, 2);
+                try
+                {
+                    // Fetch historical conversion rate for the transaction's date
+                    var originalToEuroRate = t.Currency.Code == "EUR" ? 1m :
+                        await _currencyService.GetExchangeRateAsync(t.Currency.Id, t.Date);
+
+                    var euroToPreferredRate = preferredCurrency.Code == "EUR" ? 1m :
+                        await _currencyService.GetExchangeRateAsync(preferredCurrency.Id, t.Date);
+
+                    // Convert transaction amount to EUR, then to preferred currency
+                    var amountInEur = t.Amount / originalToEuroRate;
+                    t.ConvertedAmount = Math.Round(amountInEur * euroToPreferredRate, 2);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to convert transaction {t.Id}: {ex.Message}");
+                    t.ConvertedAmount = t.Amount; // fallback in case of error
+                }
             }
 
             return transactions;
         }
+
 
         public async Task<Transaction> GetTransactionByIdAsync(int id)
         {
@@ -142,18 +160,34 @@ namespace Services
                 if (t.Currency?.Code == preferredCurrency.Code)
                 {
                     t.ConvertedAmount = t.Amount;
+                    continue;
                 }
-                else if (t.Currency == null || t.Currency.ExchangeRate == 0)
+
+                if (t.Currency == null)
                 {
                     t.ConvertedAmount = t.Amount;
+                    continue;
                 }
-                else
+
+                try
                 {
-                    var baseAmount = t.Amount / t.Currency.ExchangeRate;
-                    t.ConvertedAmount = Math.Round(baseAmount * preferredCurrency.ExchangeRate, 2);
+                    var originalToEuroRate = t.Currency.Code == "EUR" ? 1m :
+                        await _currencyService.GetExchangeRateAsync(t.Currency.Id, t.Date);
+
+                    var euroToPreferredRate = preferredCurrency.Code == "EUR" ? 1m :
+                        await _currencyService.GetExchangeRateAsync(preferredCurrency.Id, t.Date);
+
+                    var amountInEur = t.Amount / originalToEuroRate;
+                    t.ConvertedAmount = Math.Round(amountInEur * euroToPreferredRate, 2);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Filter] Failed to convert transaction {t.Id}: {ex.Message}");
+                    t.ConvertedAmount = t.Amount;
                 }
             }
 
+            // Apply amount and description filters after conversion
             if (!string.IsNullOrWhiteSpace(dto.Description))
             {
                 transactions = transactions
@@ -170,6 +204,7 @@ namespace Services
 
             return transactions;
         }
+
 
         public async Task<ExportFileResult?> ExportAsync(string userId, TransactionFilterDto filters, string format)
         {

@@ -43,7 +43,6 @@ namespace Services
                 if (category == null || currency == null)
                     continue;
 
-                // ✅ Create the real Transaction
                 await _repositoryWrapper.TransactionRepository.Create(new Transaction
                 {
                     UserId = userId,

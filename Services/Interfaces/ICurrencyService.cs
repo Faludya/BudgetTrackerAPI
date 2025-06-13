@@ -9,5 +9,6 @@ namespace Services.Interfaces
         Task AddCurrencyAsync(Currency currency);
         Task UpdateCurrencyAsync(Currency currency);
         Task DeleteCurrencyAsync(int id);
+        Task<decimal> GetExchangeRateAsync(int targetCurrencyId, DateTime date);
     }
 }

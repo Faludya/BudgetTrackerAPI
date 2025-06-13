@@ -62,6 +62,13 @@ namespace BudgetTrackerAPI.Controllers
             var result = await _statisticsService.GetBudgetHealthSummaryAsync(userId, month, year);
             return Ok(result);
         }
+
+        [HttpGet("currency-history")]
+        public async Task<IActionResult> GetCurrencyHistory([FromHeader] string userId, [FromQuery] int days = 30)
+        {
+            var result = await _statisticsService.GetCurrencyHistoryAsync(userId, days);
+            return Ok(result);
+        }
     }
 
 }

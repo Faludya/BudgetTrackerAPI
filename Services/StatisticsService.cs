@@ -14,13 +14,16 @@ namespace Services
     {
         private readonly IRepositoryWrapper _repositoryWrapper;
         private readonly IUserPreferencesService _userPreferencesService;
+        private readonly ICurrencyService _currencyService;
 
         public StatisticsService(
             IRepositoryWrapper repositoryWrapper,
-            IUserPreferencesService userPreferencesService)
+            IUserPreferencesService userPreferencesService,
+            ICurrencyService currencyService)
         {
             _repositoryWrapper = repositoryWrapper;
             _userPreferencesService = userPreferencesService;
+            _currencyService = currencyService;
         }
 
         public async Task<SummaryDto> GetSummaryAsync(string userId, int month, int year)
@@ -208,15 +211,55 @@ namespace Services
             };
         }
 
-        private async Task<decimal> SumConverted(IEnumerable<Transaction> transactions, string toCurrency)
+        private async Task<decimal> SumConverted(IEnumerable<Transaction> transactions, string toCurrencyCode)
         {
             decimal total = 0;
+            var targetCurrency = await _repositoryWrapper.CurrencyRepository.GetCurrencyByCode(toCurrencyCode);
+
             foreach (var t in transactions)
             {
-                var currency = await _repositoryWrapper.CurrencyRepository.GetCurrencyByCode(toCurrency);
-                total += CurrencyHelper.ConvertAmount(t.Amount, t.Currency, currency);
+                if (t.Currency == null)
+                {
+                    total += t.Amount; // fallback
+                    continue;
+                }
+
+                try
+                {
+                    var originalToEuro = t.Currency.Code == "EUR" ? 1m :
+                        await _currencyService.GetExchangeRateAsync(t.Currency.Id, t.Date);
+
+                    var euroToTarget = targetCurrency.Code == "EUR" ? 1m :
+                        await _currencyService.GetExchangeRateAsync(targetCurrency.Id, t.Date);
+
+                    var amountInEur = t.Amount / originalToEuro;
+                    var converted = Math.Round(amountInEur * euroToTarget, 2);
+
+                    total += converted;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[SumConverted] Failed to convert transaction {t.Id}: {ex.Message}");
+                    total += t.Amount; // fallback
+                }
             }
-            return total;
+
+            return Math.Round(total, 2);
+        }
+
+        public async Task<List<CurrencyHistoryDto>> GetCurrencyHistoryAsync(string userId, int days)
+        {
+            var preferences = await _userPreferencesService.GetUserPreferencesByIdAsync(userId);
+            var preferredCurrency = await _repositoryWrapper.CurrencyRepository.GetCurrencyByCode(preferences.PreferredCurrency);
+            var fromDate = DateTime.Today.AddDays(-days);
+
+            var history = await _repositoryWrapper.CurrencyRepository.GetExchangeRateHistoryAsync(preferredCurrency.Id, fromDate);
+
+            return history.Select(r => new CurrencyHistoryDto
+            {
+                Date = r.Date,
+                Rate = r.Rate
+            }).ToList();
         }
     }
 }

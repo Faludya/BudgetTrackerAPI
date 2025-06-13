@@ -15,11 +15,13 @@ namespace Services
     {
         private readonly IApplicationUserRepository _userRepository;
         private readonly IConfiguration _configuration;
+        private readonly IUserPreferencesService _userPreferencesService;
 
-        public ApplicationUserService(IApplicationUserRepository userRepository, IConfiguration configuration)
+        public ApplicationUserService(IApplicationUserRepository userRepository, IConfiguration configuration, IUserPreferencesService userPreferencesService)
         {
             _userRepository = userRepository;
             _configuration = configuration;
+            _userPreferencesService = userPreferencesService;
         }
 
         public string GenerateJwtToken(ApplicationUser user)
@@ -77,9 +79,16 @@ namespace Services
             return user;
         }
 
-        public async Task<IdentityResult> RegisterUserAsync(ApplicationUser user, string password)
+        public async Task<IdentityResult>  RegisterUserAsync(ApplicationUser user, string password)
         {
-            return await _userRepository.CreateUserAsync(user, password);
+            var result = await _userRepository.CreateUserAsync(user, password);
+
+            if (result.Succeeded)
+            {
+                await _userPreferencesService.CreateDefaultUserPreferences(user.Id);
+            }
+
+            return result;
         }
 
         public async Task<IdentityResult> UpdateUserAsync(ApplicationUser user)
@@ -95,6 +104,7 @@ namespace Services
             existingUser.Address = user.Address;
             existingUser.ProfilePictureUrl = user.ProfilePictureUrl;
             existingUser.PhoneNumber = user.PhoneNumber;
+            existingUser.DateOfBirth = user.DateOfBirth;
 
             return await _userRepository.UpdateUserAsync(existingUser);
         }
