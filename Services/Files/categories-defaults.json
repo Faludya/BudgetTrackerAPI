@@ -1,0 +1,114 @@
+﻿[
+  {
+    "name": "Food",
+    "colorHex": "#ff0000",
+    "iconName": "Restaurant",
+    "orderIndex": 1,
+    "categoryType": "Essentials",
+    "subcategories": [
+      { "name": "Restaurants" },
+      { "name": "Fast Food / Takeout" },
+      { "name": "Coffee / Snacks" },
+      { "name": "Meal Delivery (Uber Eats, Glovo, etc.)" },
+      { "name": "Groceries" }
+    ]
+  },
+  {
+    "name": "Transportation",
+    "colorHex": "#ffa600",
+    "iconName": "Commute",
+    "orderIndex": 2,
+    "categoryType": "Essentials",
+    "subcategories": [
+      { "name": "Public Transport" },
+      { "name": "Fuel / Gas" },
+      { "name": "Ride Sharing (Bolt, Uber)" },
+      { "name": "Parking / Tolls" },
+      { "name": "Car Insurance" },
+      { "name": "Car Repairs / Maintenance" }
+    ]
+  },
+  {
+    "name": "Bills & Subscriptions",
+    "colorHex": "#ffa600",
+    "iconName": "Subscriptions",
+    "orderIndex": 3,
+    "categoryType": "Essentials",
+    "subcategories": [
+      { "name": "Streaming Services (Netflix, Spotify)" },
+      { "name": "Cloud Storage" },
+      { "name": "Software / Apps" },
+      { "name": "Mobile Plans" },
+      { "name": "Other Recurring Subscriptions" }
+    ]
+  },
+  {
+    "name": "Household",
+    "colorHex": "#ffa600",
+    "iconName": "Home",
+    "orderIndex": 4,
+    "categoryType": "Essentials",
+    "subcategories": [
+      { "name": "Rent / Mortgage" },
+      { "name": "Utilities (Gas, Electricity, Water)" },
+      { "name": "Internet & Phone" },
+      { "name": "Cleaning Supplies" },
+      { "name": "Home Maintenance" }
+    ]
+  },
+  {
+    "name": "Shopping",
+    "colorHex": "#ffa600",
+    "iconName": "ShoppingCart",
+    "orderIndex": 5,
+    "categoryType": "Wants",
+    "subcategories": [
+      { "name": "Clothing" },
+      { "name": "Electronics" },
+      { "name": "Home Decor" },
+      { "name": "Gifts" },
+      { "name": "Misc. Shopping" }
+    ]
+  },
+  {
+    "name": "Health & Wellness",
+    "colorHex": "#ffa600",
+    "iconName": "Pets",
+    "orderIndex": 6,
+    "categoryType": "Essentials",
+    "subcategories": [
+      { "name": "Medical Visits" },
+      { "name": "Pharmacy / Medication" },
+      { "name": "Gym Membership" },
+      { "name": "Therapy / Counseling" },
+      { "name": "Health Insurance" }
+    ]
+  },
+  {
+    "name": "Entertainment & Leisure",
+    "colorHex": "#ffa600",
+    "iconName": "Pets",
+    "orderIndex": 7,
+    "categoryType": "Wants",
+    "subcategories": [
+      { "name": "Events & Tickets" },
+      { "name": "Hobbies (board games, books, music)" },
+      { "name": "Video Games" },
+      { "name": "Travel / Vacations" },
+      { "name": "Dining Out (optional if you don’t want it under Food)" }
+    ]
+  },
+  {
+    "name": "Income",
+    "colorHex": "#ffa600",
+    "iconName": "AttachMoney",
+    "orderIndex": 8,
+    "categoryType": "Income",
+    "subcategories": [
+      { "name": "Salary" },
+      { "name": "Refunds" },
+      { "name": "Freelance / Side Hustle" },
+      { "name": "Gifts / Other Income" }
+    ]
+  }
+]

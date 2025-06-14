@@ -1,19 +1,23 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Models;
 using Models.DTOs;
 using Repositories.Interfaces;
 using Services.Interfaces;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace Services
 {
     public class CategoryService : ICategoryService
     {
         private readonly IRepositoryWrapper _repositoryWrapper;
+        private readonly IWebHostEnvironment _env;
 
-        public CategoryService(IRepositoryWrapper repositoryWrapper)
+        public CategoryService(IRepositoryWrapper repositoryWrapper, IWebHostEnvironment webHostEnvironment)
         {
             _repositoryWrapper = repositoryWrapper;
+            _env = webHostEnvironment;
         }
 
         public async Task<IEnumerable<Category>> GetAllCategoriesAsync(string userId)
@@ -115,6 +119,63 @@ namespace Services
             return category;
         }
 
+        public async Task CreateDefaultCategories(string userId)
+        {
+            var filePath = Path.Combine(_env.ContentRootPath, "Services", "Files", "categories-defaults.json");
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException("Default categories JSON not found.");
+
+            var json = await File.ReadAllTextAsync(filePath);
+            var templates = JsonSerializer.Deserialize<List<CategoryTemplate>>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? new();
+
+            var now = DateTime.UtcNow;
+            var allCategories = new List<Category>();
+
+            foreach (var parent in templates)
+            {
+                var parentCategory = new Category
+                {
+                    Name = parent.Name,
+                    ColorHex = parent.ColorHex,
+                    IconName = parent.IconName,
+                    OrderIndex = parent.OrderIndex,
+                    CategoryType = parent.CategoryType,
+                    IsPredefined = true,
+                    CreatedAt = now,
+                    UserId = userId
+                };
+
+                allCategories.Add(parentCategory);
+
+                if (parent.Subcategories != null)
+                {
+                    foreach (var sub in parent.Subcategories)
+                    {
+                        allCategories.Add(new Category
+                        {
+                            Name = sub.Name,
+                            ColorHex = parent.ColorHex,
+                            IconName = parent.IconName,
+                            OrderIndex = 0,
+                            CategoryType = parent.CategoryType,
+                            IsPredefined = true,
+                            CreatedAt = now,
+                            UserId = userId,
+                            ParentCategory = parentCategory
+                        });
+                    }
+                }
+            }
+
+            foreach (var category in allCategories)
+            {
+                await _repositoryWrapper.CategoryRepository.Create(category);
+            }
+            await _repositoryWrapper.Save();
+        }
     }
 
 }

@@ -11,6 +11,7 @@ namespace Services.Interfaces
         Task AddCategoryAsync(Category category);
         Task UpdateCategoryAsync(Category category);
         Task DeleteCategoryAsync(int id);
+        Task CreateDefaultCategories(string userId);
         Task<string?> PredictCategoryAsync(string description);
     }
 }

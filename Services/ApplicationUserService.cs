@@ -16,12 +16,14 @@ namespace Services
         private readonly IApplicationUserRepository _userRepository;
         private readonly IConfiguration _configuration;
         private readonly IUserPreferencesService _userPreferencesService;
+        private readonly ICategoryService _categoryService;
 
-        public ApplicationUserService(IApplicationUserRepository userRepository, IConfiguration configuration, IUserPreferencesService userPreferencesService)
+        public ApplicationUserService(IApplicationUserRepository userRepository, IConfiguration configuration, IUserPreferencesService userPreferencesService, ICategoryService categoryService)
         {
             _userRepository = userRepository;
             _configuration = configuration;
             _userPreferencesService = userPreferencesService;
+            _categoryService = categoryService;
         }
 
         public string GenerateJwtToken(ApplicationUser user)
@@ -86,6 +88,7 @@ namespace Services
             if (result.Succeeded)
             {
                 await _userPreferencesService.CreateDefaultUserPreferences(user.Id);
+                await _categoryService.CreateDefaultCategories(user.Id);
             }
 
             return result;

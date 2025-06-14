@@ -147,3 +147,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+//gcloud run deploy budget-api --image gcr.io/budgettracker-458613/budget-api --platform managed --region europe-central2 --allow-unauthenticated --port 8080
+//https://budget-api-23868837402.europe-central2.run.app
