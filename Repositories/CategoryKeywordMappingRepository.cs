@@ -32,6 +32,7 @@ namespace Repositories
             return await _appDbContext.CategoryKeywordMappings
                 .Where(m => m.UserId == userId)
                 .Include(m => m.Category)
+                .OrderBy(m => m.Keyword)
                 .ToListAsync();
         }
     }

@@ -121,7 +121,7 @@ namespace Services
 
         public async Task CreateDefaultCategories(string userId)
         {
-            var filePath = Path.Combine(_env.ContentRootPath, "Services", "Files", "categories-defaults.json");
+            var filePath = Path.Combine(_env.ContentRootPath, "..", "Services", "Files", "categories-defaults.json");
             if (!File.Exists(filePath))
                 throw new FileNotFoundException("Default categories JSON not found.");
 

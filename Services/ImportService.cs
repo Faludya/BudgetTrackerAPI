@@ -55,7 +55,7 @@ namespace Services
                     Type = tx.Amount < 0 ? "Debit" : "Credit"
                 });
 
-                // ✅ Category Suggestion logic
+                // Category Suggestion logic
                 var existingSuggestion = await _repositoryWrapper.CategorySuggestionRepository.GetCategorySuggestionById(tx.Id);
 
                 if (existingSuggestion == null)
@@ -80,10 +80,10 @@ namespace Services
                     await _repositoryWrapper.CategorySuggestionRepository.Update(existingSuggestion);
                 }
 
-                // ✅ New: Save keyword mapping if user opted to remember it
+                //Save keyword mapping if user opted to remember it
                 if (tx.RememberMapping && !string.IsNullOrWhiteSpace(tx.Description))
                 {
-                    var keyword = ExtractMainKeyword(tx.Description);
+                    var keyword = _mappingService.ExtractFirstMeaningfulWord(tx.Description);
                     if (!string.IsNullOrWhiteSpace(keyword))
                     {
                         var exists = await _repositoryWrapper.CategoryKeywordMappingRepository
@@ -133,72 +133,48 @@ namespace Services
             foreach (var parsedTx in parsedTransactions)
             {
                 var matchedCategoryId = await _mappingService.FindCategoryIdByKeywordAsync(userId, parsedTx.Description);
-                string? matchedCategoryName = null;
+                string? finalCategory = null;
 
                 if (matchedCategoryId.HasValue)
                 {
                     var matchedCategory = await _repositoryWrapper.CategoryRepository.GetCategoryById(matchedCategoryId.Value);
-                    matchedCategoryName = matchedCategory?.Name;
-                }
-
-                // 🧠 Use matched name OR parsed category OR fallback prediction
-                string? finalCategory = matchedCategoryName ?? parsedTx.Category;
-
-                // Track whether ML model is used
-                bool isFromMLModel = false;
-
-                // 🔍 ML Fallback only if still null/empty
-                if (string.IsNullOrWhiteSpace(finalCategory))
-                {
-                    finalCategory = await _categoryService.PredictCategoryAsync(parsedTx.Description);
-                    if (!string.IsNullOrWhiteSpace(finalCategory))
-                        isFromMLModel = true;
+                    finalCategory = matchedCategory?.Name;
                 }
 
                 var importedTx = new ImportedTransaction
                 {
                     ImportSessionId = session.Id,
-                    Date = parsedTx.Date,
+                    Date = DateTime.SpecifyKind(parsedTx.Date, DateTimeKind.Utc),
                     Description = parsedTx.Description,
                     Amount = parsedTx.Amount,
                     Currency = parsedTx.Currency,
                     Category = finalCategory,
-                    IsFromMLModel = isFromMLModel // ✅ Set based on fallback source
+                    IsFromMLModel = false
                 };
 
                 await _repositoryWrapper.ImportedTransactionRepository.Create(importedTx);
                 await _repositoryWrapper.Save();
 
-                // 💾 Save suggestion if category was found
-                if (!string.IsNullOrEmpty(finalCategory))
+                if (matchedCategoryId.HasValue)
                 {
-                    var categoryEntity = await _repositoryWrapper.CategoryRepository
-                        .GetCategoryByUserIdAndName(userId, finalCategory);
-
-                    if (categoryEntity != null)
+                    var keyword = _mappingService.ExtractFirstMeaningfulWord(parsedTx.Description);
+                    var suggestion = new CategorySuggestion
                     {
-                        var keyword = parsedTx.Description?
-                            .ToLower()
-                            .Split(new[] { ' ', '|', '-', ',', '.', ':' }, StringSplitOptions.RemoveEmptyEntries)
-                            .FirstOrDefault(w => w.Length > 3);
+                        ImportedTransactionId = importedTx.Id,
+                        CategoryId = matchedCategoryId.Value,
+                        Confidence = 1.0m,
+                        IsFromMLModel = false,
+                        SourceKeyword = keyword
+                    };
 
-                        var suggestion = new CategorySuggestion
-                        {
-                            ImportedTransactionId = importedTx.Id,
-                            CategoryId = categoryEntity.Id,
-                            Confidence = isFromMLModel ? 0.7m : 1.0m,
-                            IsFromMLModel = isFromMLModel,
-                            SourceKeyword = isFromMLModel ? keyword : null
-                        };
-
-                        await _repositoryWrapper.CategorySuggestionRepository.Create(suggestion);
-                    }
+                    await _repositoryWrapper.CategorySuggestionRepository.Create(suggestion);
                 }
             }
 
             await _repositoryWrapper.Save();
             return session;
         }
+
 
 
         public async Task<bool> UpdateImportedTransactionAsync(Guid sessionId, int transactionId, UpdateImportedTransactionDto dto)
@@ -243,14 +219,6 @@ namespace Services
             }
 
             await _repositoryWrapper.Save();
-        }
-
-        private string ExtractMainKeyword(string description)
-        {
-            if (string.IsNullOrWhiteSpace(description)) return string.Empty;
-
-            var words = description.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            return words.FirstOrDefault(w => w.Length > 3)?.Trim().ToLower() ?? string.Empty;
         }
     }
 }

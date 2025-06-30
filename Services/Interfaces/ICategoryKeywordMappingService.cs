@@ -11,6 +11,7 @@ namespace Services.Interfaces
         Task<bool> UpdateAsync(string userId, UpdateCategoryKeywordMappingDto dto);
         Task<bool> DeleteAsync(string userId, int id);
         Task<int?> FindCategoryIdByKeywordAsync(string userId, string description);
+        string? ExtractFirstMeaningfulWord(string? description);
     }
 
 }

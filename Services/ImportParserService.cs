@@ -3,7 +3,10 @@ using Models.DTOs;
 using Repositories.Interfaces;
 using Services.Interfaces;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using UglyToad.PdfPig;
+using System.IO.Compression;
+using System.Xml.Linq;
 
 namespace Services
 {
@@ -24,7 +27,7 @@ namespace Services
                 "raiffeisen" => await ParseRaiffeisenAsync(fileStream),
                 "ing-csv" => await ParseIngCsvAsync(fileStream),
                 "ing-excel" => await ParseIngExcelAsync(fileStream),
-                "bcr-pdf" => await ParseBcrPdfAsync(fileStream),
+                "brd-pdf" => await ParseBrdPdfAsync(fileStream),
                 _ => throw new Exception("Unsupported template type.")
             };
         }
@@ -69,7 +72,7 @@ namespace Services
             using var workbook = new XLWorkbook(stream);
             var sheet = workbook.Worksheet(1);
 
-            string currency = "RON";
+            string currency = "EUR";
 
             var valutaCell = sheet.CellsUsed()
                 .FirstOrDefault(c => c.Value.ToString().Trim().Equals("Valuta:", StringComparison.OrdinalIgnoreCase))
@@ -126,29 +129,122 @@ namespace Services
             using var reader = new StreamReader(stream);
             using var csv = new CsvHelper.CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(new CultureInfo("ro-RO"))
             {
-                HasHeaderRecord = true,
+                HasHeaderRecord = false,
                 Delimiter = ",",
                 MissingFieldFound = null,
-                HeaderValidated = null
+                HeaderValidated = null,
+                BadDataFound = null
             });
 
-            // Skip the first two metadata rows manually
-            for (int i = 0; i < 2; i++) await csv.ReadAsync();
-
-            csv.Read(); // third line is header
-            csv.ReadHeader();
+            bool headerFound = false;
+            string currency = "EUR"; // ✅ Default fallback if nothing found
+            bool currencyExtracted = false;
 
             while (await csv.ReadAsync())
             {
-                var dateRaw = csv.GetField("Data")?.Trim();
-                var description = csv.GetField("Detalii tranzactie")?.Trim();
-                var debitStr = csv.GetField("Debit")?.Trim();
-                var creditStr = csv.GetField("Credit")?.Trim();
+                var firstCell = csv.GetField(0)?.Trim();
 
-                if (string.IsNullOrWhiteSpace(dateRaw) || string.IsNullOrWhiteSpace(description)) continue;
-
-                if (!DateTime.TryParseExact(dateRaw, "dd MMM yyyy", new CultureInfo("ro-RO"), DateTimeStyles.None, out var date))
+                // 🔹 Detect the header row (start of transactions)
+                if (!headerFound && string.Equals(firstCell, "Data", StringComparison.OrdinalIgnoreCase))
+                {
+                    headerFound = true;
                     continue;
+                }
+
+                if (!headerFound)
+                    continue;
+
+                // 🔹 Try to extract currency from "Balanta" column
+                if (!currencyExtracted)
+                {
+                    var balanceField = csv.GetField(7);
+                    if (!string.IsNullOrWhiteSpace(balanceField))
+                    {
+                        var match = Regex.Match(balanceField, @"\b([A-Z]{3})\b");
+                        if (match.Success)
+                        {
+                            currency = match.Value;
+                            currencyExtracted = true;
+                        }
+                    }
+                }
+
+                var dateStr = csv.GetField(0)?.Trim();
+                var description = csv.GetField(3)?.Trim();
+                var debitStr = csv.GetField(4)?.Trim();
+                var creditStr = csv.GetField(6)?.Trim();
+
+                if (string.IsNullOrWhiteSpace(dateStr) || string.IsNullOrWhiteSpace(description))
+                    continue;
+
+                // Try parsing multiple formats: "25 mai 2025" or "25-05-2025"
+                if (!DateTime.TryParseExact(dateStr, "dd MMM yyyy", new CultureInfo("ro-RO"), DateTimeStyles.None, out var date) &&
+                    !DateTime.TryParse(dateStr, new CultureInfo("ro-RO"), DateTimeStyles.None, out date))
+                {
+                    continue;
+                }
+
+                // Normalize amounts using invariant culture
+                bool hasDebit = decimal.TryParse(debitStr?.Replace(".", "").Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var debit);
+                bool hasCredit = decimal.TryParse(creditStr?.Replace(".", "").Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var credit);
+
+                if (!hasDebit && !hasCredit)
+                    continue;
+
+                // ✅ Debit = negative (expense), Credit = positive (income)
+                var amount = hasDebit ? -debit : credit;
+
+                results.Add(new ParsedTransactionDto
+                {
+                    Date = DateTime.SpecifyKind(date, DateTimeKind.Utc),
+                    Description = description,
+                    Amount = amount,
+                    Currency = currency,
+                    Category = null
+                });
+            }
+
+            return results;
+        }
+
+        private async Task<List<ParsedTransactionDto>> ParseIngExcelAsync(Stream stream)
+        {
+            var results = new List<ParsedTransactionDto>();
+            var cleanStream = RemoveDrawingsFromXlsxStream(stream);
+            using var workbook = new XLWorkbook(cleanStream);
+            var sheet = workbook.Worksheet(1);
+
+            string currency = "EUR"; // default
+            bool currencyExtracted = false;
+
+            foreach (var row in sheet.RowsUsed().Where(r => r.RowNumber() >= 6))
+            {
+                var dateCell = row.Cell(1);
+                var descCell = row.Cell(2);
+                var debitCell = row.Cell(3);
+                var creditCell = row.Cell(4);
+                var balanceCell = row.Cell(5);
+
+                var desc = descCell.GetString()?.Trim();
+                if (string.IsNullOrWhiteSpace(desc)) continue;
+
+                // Try to extract currency once from balance
+                if (!currencyExtracted)
+                {
+                    var balance = balanceCell.GetString();
+                    var match = Regex.Match(balance, @"\b([A-Z]{3})\b");
+                    if (match.Success)
+                    {
+                        currency = match.Value;
+                        currencyExtracted = true;
+                    }
+                }
+
+                if (!dateCell.TryGetValue(out DateTime date)) continue;
+                date = DateTime.SpecifyKind(date, DateTimeKind.Utc);
+
+                var debitStr = debitCell.GetString()?.Trim();
+                var creditStr = creditCell.GetString()?.Trim();
 
                 bool hasDebit = decimal.TryParse(debitStr?.Replace(".", "").Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var debit);
                 bool hasCredit = decimal.TryParse(creditStr?.Replace(".", "").Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var credit);
@@ -160,44 +256,6 @@ namespace Services
                 results.Add(new ParsedTransactionDto
                 {
                     Date = date,
-                    Description = description,
-                    Amount = amount,
-                    Currency = "RON",
-                    Category = null
-                });
-            }
-
-            return results;
-        }
-
-        private async Task<List<ParsedTransactionDto>> ParseIngExcelAsync(Stream stream)
-        {
-            var results = new List<ParsedTransactionDto>();
-            using var workbook = new XLWorkbook(stream);
-            var sheet = workbook.Worksheet(1);
-
-            string currency = "RON"; // Assumed from the file; adjust if needed
-
-            // Start from row 6 (after metadata and header)
-            foreach (var row in sheet.RowsUsed().Where(r => r.RowNumber() >= 6))
-            {
-                var dateCell = row.Cell(1).GetDateTime();
-                var desc = row.Cell(2).GetString()?.Trim();
-                var debitStr = row.Cell(3).GetString()?.Trim();
-                var creditStr = row.Cell(4).GetString()?.Trim();
-
-                if (string.IsNullOrWhiteSpace(desc)) continue;
-
-                bool hasDebit = decimal.TryParse(debitStr?.Replace(".", "").Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var debit);
-                bool hasCredit = decimal.TryParse(creditStr?.Replace(".", "").Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var credit);
-
-                if (!hasDebit && !hasCredit) continue;
-
-                var amount = hasDebit ? -debit : credit;
-
-                results.Add(new ParsedTransactionDto
-                {
-                    Date = DateTime.SpecifyKind(dateCell, DateTimeKind.Utc),
                     Description = desc,
                     Amount = amount,
                     Currency = currency,
@@ -208,70 +266,123 @@ namespace Services
             return results;
         }
 
-
-        private async Task<List<ParsedTransactionDto>> ParseBcrPdfAsync(Stream stream)
+        private async Task<List<ParsedTransactionDto>> ParseBrdPdfAsync(Stream stream)
         {
             var results = new List<ParsedTransactionDto>();
 
             using var document = PdfDocument.Open(stream);
+            var fullText = string.Join("\n", document.GetPages().Select(p => p.Text));
 
-            foreach (var page in document.GetPages())
+            // Match: amount + optional description + date (dd/MM/yyyy) + optional second date
+            var transactionRegex = new Regex(
+                @"(?<amount>\d{1,3}(?:\.\d{3})*,\d{2})" + // amount like 1.500,00
+                @"(?<desc>.+?)" +                        // description (non-greedy)
+                @"(?<date1>\d{2}/\d{2}/\d{4})" +         // first date (value date)
+                @"(?<date2>\d{2}/\d{2}/\d{4})",          // second date (transaction date)
+                RegexOptions.Singleline);
+
+            var matches = transactionRegex.Matches(fullText);
+
+            foreach (Match match in matches)
             {
-                var lines = page.Text
-                    .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(line => line.Trim())
-                    .Where(line => !string.IsNullOrWhiteSpace(line))
-                    .ToList();
+                var amountStr = match.Groups["amount"].Value.Trim();
+                var description = match.Groups["desc"].Value.Trim();
+                var dateStr = match.Groups["date1"].Value.Trim();
 
-                for (int i = 0; i < lines.Count - 3; i++)
+                if (!decimal.TryParse(amountStr.Replace(".", "").Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var amount))
+                    continue;
+
+                if (!DateTime.TryParseExact(dateStr, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+                    continue;
+
+                // Use last few words of description
+                var descLines = Regex.Split(description, @"(?<!\d)\s+(?=\S)"); // split on blocks of spaces
+                int cardIndex = Array.FindIndex(descLines, line => line.Contains("Card nr", StringComparison.OrdinalIgnoreCase));
+                string shortDescription = (cardIndex >= 0 && cardIndex + 1 < descLines.Length)
+                    ? descLines[cardIndex + 1].Trim()
+                    : descLines.LastOrDefault()?.Trim() ?? "Unknown";
+
+
+
+                // Heuristic: is it credit or debit?
+                var isCredit = description.Contains("Incasare", StringComparison.OrdinalIgnoreCase) ||
+                               description.Contains("Transfer", StringComparison.OrdinalIgnoreCase) ||
+                               description.Contains("Plata instant", StringComparison.OrdinalIgnoreCase);
+
+                if (!isCredit)
+                    amount *= -1;
+
+                results.Add(new ParsedTransactionDto
                 {
-                    var amountLine = lines[i];
-
-                    // Skip totals and headers
-                    if (amountLine.Contains("Total") || amountLine.Contains("Sold") || amountLine.Length > 20)
-                        continue;
-
-                    // Step 1: Try parse amount (e.g. "153,15" or "1.500,00")
-                    if (!decimal.TryParse(amountLine.Replace(".", "").Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var amount))
-                        continue;
-
-                    var description = lines[i + 1];
-
-                    // Step 2: Look ahead for a valid date (e.g. 21/05/2025)
-                    var dateLine = lines[i + 2];
-                    if (!DateTime.TryParseExact(dateLine, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
-                        continue;
-
-                    // Step 3: Determine if it's a credit or debit (based on context: optional)
-                    bool isCredit = false;
-
-                    // Look forward for indicators like "Transfer", "Incasare", etc.
-                    for (int j = i + 2; j < Math.Min(i + 6, lines.Count); j++)
-                    {
-                        if (lines[j].Contains("Incasare", StringComparison.OrdinalIgnoreCase) ||
-                            lines[j].Contains("Transfer credit", StringComparison.OrdinalIgnoreCase))
-                        {
-                            isCredit = true;
-                            break;
-                        }
-                    }
-
-                    if (!isCredit) amount *= -1;
-
-                    results.Add(new ParsedTransactionDto
-                    {
-                        Date = DateTime.SpecifyKind(date, DateTimeKind.Utc),
-                        Description = description,
-                        Amount = amount,
-                        Currency = "RON",
-                        Category = null
-                    });
-
-                    i += 2; // Skip processed block
-                }
+                    Date = DateTime.SpecifyKind(date, DateTimeKind.Utc),
+                    Description = shortDescription,
+                    Amount = amount,
+                    Currency = "EUR",
+                    Category = null
+                });
             }
 
             return results;
         }
+
+
+
+        private Stream RemoveDrawingsFromXlsxStream(Stream originalStream)
+        {
+            var cleanedStream = new MemoryStream();
+            using var archive = new ZipArchive(originalStream, ZipArchiveMode.Read, leaveOpen: true);
+            using var newArchiveStream = new MemoryStream();
+            using (var newArchive = new ZipArchive(newArchiveStream, ZipArchiveMode.Create, true))
+            {
+                foreach (var entry in archive.Entries)
+                {
+                    // Skip drawings/media/charts completely
+                    if (entry.FullName.StartsWith("xl/media/", StringComparison.OrdinalIgnoreCase) ||
+                        entry.FullName.StartsWith("xl/drawings/", StringComparison.OrdinalIgnoreCase) ||
+                        entry.FullName.StartsWith("xl/charts/", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    // Clean .rels entries properly
+                    if (entry.FullName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase))
+                    {
+                        using var entryStream = entry.Open();
+                        var xml = XDocument.Load(entryStream);
+
+                        // Remove Relationship nodes that point to drawings/media/charts
+                        var relationships = xml.Root?.Elements()
+                            .Where(e =>
+                                e.Attribute("Target")?.Value.Contains("drawing", StringComparison.OrdinalIgnoreCase) == true ||
+                                e.Attribute("Target")?.Value.Contains("media", StringComparison.OrdinalIgnoreCase) == true ||
+                                e.Attribute("Target")?.Value.Contains("chart", StringComparison.OrdinalIgnoreCase) == true
+                            )
+                            .ToList();
+
+                        if (relationships != null)
+                        {
+                            foreach (var r in relationships)
+                                r.Remove();
+                        }
+
+                        var newEntry = newArchive.CreateEntry(entry.FullName);
+                        using var writer = new StreamWriter(newEntry.Open());
+                        xml.Save(writer);
+                        continue;
+                    }
+
+                    // Copy everything else as-is
+                    var newFile = newArchive.CreateEntry(entry.FullName, CompressionLevel.Optimal);
+                    using var originalFileStream = entry.Open();
+                    using var newFileStream = newFile.Open();
+                    originalFileStream.CopyTo(newFileStream);
+                }
+            }
+
+            newArchiveStream.Seek(0, SeekOrigin.Begin);
+            cleanedStream.Seek(0, SeekOrigin.Begin);
+            newArchiveStream.CopyTo(cleanedStream);
+            cleanedStream.Seek(0, SeekOrigin.Begin);
+            return cleanedStream;
+        }
+
     }
 }

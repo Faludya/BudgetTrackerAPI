@@ -83,6 +83,17 @@ namespace Services
 
             return null;
         }
+
+        public string? ExtractFirstMeaningfulWord(string? description)
+        {
+            if (string.IsNullOrWhiteSpace(description)) return null;
+
+            return description
+                .ToLower()
+                .Split(new[] { ' ', '|', '-', ',', '.', ':' }, StringSplitOptions.RemoveEmptyEntries)
+                .FirstOrDefault(w => w.Length > 3);
+        }
+
     }
 
 }
