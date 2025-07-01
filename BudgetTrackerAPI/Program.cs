@@ -117,7 +117,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend",
         policy =>
         {
-            policy.WithOrigins("http://localhost:3000")
+            policy.WithOrigins(
+                "http://localhost:3000",
+                "https://budgettracker-93338.web.app"
+            )
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .AllowCredentials();
@@ -139,7 +142,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseCors("AllowSpecificOrigin");
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
@@ -147,5 +150,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+//gcloud builds submit --tag gcr.io/budgettracker-458613/budget-api
 //gcloud run deploy budget-api --image gcr.io/budgettracker-458613/budget-api --platform managed --region europe-central2 --allow-unauthenticated --port 8080
 //https://budget-api-23868837402.europe-central2.run.app
