@@ -125,7 +125,7 @@ namespace Services
                 .FindByCondition(t => t.UserId == userId &&
                                       t.Date.Month == month &&
                                       t.Date.Year == year &&
-                                      t.Type == "Expense");
+                                      t.Type == "Debit");
 
             var totalSpent = await SumConverted(await transactions.ToListAsync(), preferences.PreferredCurrency);
 
@@ -155,7 +155,7 @@ namespace Services
                 .FindByCondition(t => t.UserId == userId &&
                                       t.Date.Month == month &&
                                       t.Date.Year == year &&
-                                      t.Type == "Expense");
+                                      t.Type == "Debit");
 
             var transactionList = await transactions.ToListAsync();
 
