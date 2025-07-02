@@ -48,7 +48,7 @@ namespace Services
                     UserId = userId,
                     Date = tx.Date,
                     Description = tx.Description,
-                    Amount = tx.Amount,
+                    Amount = Math.Abs(tx.Amount),
                     CategoryId = category.Id,
                     CurrencyId = currency.Id,
                     CreatedAt = DateTime.UtcNow,
